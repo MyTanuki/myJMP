@@ -1,0 +1,51 @@
+import { db } from "@/lib/db";
+import { roomLabel } from "@/lib/format";
+import { PageHeader, EmptyState } from "@/components/ui";
+import VehiclesClient, { VehicleRow } from "./VehiclesClient";
+
+export default async function VehiclesPage() {
+  const [vehicles, rooms, tenants] = await Promise.all([
+    db.vehicle.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { room: true, tenant: true },
+    }),
+    db.room.findMany({
+      orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
+    }),
+    db.tenant.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+  ]);
+
+  const rows: VehicleRow[] = vehicles.map((v) => ({
+    id: v.id,
+    plate: v.plate,
+    kind: v.kind,
+    brand: v.brand,
+    color: v.color,
+    note: v.note,
+    roomId: v.roomId,
+    roomNumber: v.room ? roomLabel(v.room.building, v.room.number) : null,
+    tenantId: v.tenantId,
+    tenantName: v.tenant?.name ?? null,
+  }));
+
+  return (
+    <>
+      <PageHeader
+        title="ยานพาหนะ"
+        subtitle={`ลงทะเบียน ${rows.length} คัน`}
+      />
+      <VehiclesClient
+        vehicles={rows}
+        rooms={rooms.map((r) => ({ id: r.id, number: roomLabel(r.building, r.number) }))}
+        tenants={tenants.map((t) => ({ id: t.id, name: t.name }))}
+      />
+      {rows.length === 0 && (
+        <EmptyState
+          icon="🚗"
+          title="ยังไม่มีรถลงทะเบียน"
+          hint="บันทึกทะเบียนรถของผู้เช่าเพื่อจัดการที่จอด"
+        />
+      )}
+    </>
+  );
+}

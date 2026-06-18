@@ -1,0 +1,258 @@
+// บริหารจัดการห้องพัก — schema
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin") // admin | manager | staff
+  dormName     String   @default("หอพักของฉัน")
+  waterRate    Float    @default(18) // บาท/หน่วย
+  elecRate     Float    @default(8) // บาท/หน่วย
+
+  // ข้อมูลหัวบิล
+  businessType String? // ประเภทกิจการ เช่น บุคคลธรรมดา / นิติบุคคล
+  taxId        String? // เลขประจำตัวผู้เสียภาษี
+  address      String? // ที่อยู่หอพัก
+  billNote     String? // ข้อความท้ายบิล
+
+  // บัญชีรับชำระ
+  bankName        String?
+  bankAccountName String?
+  bankAccountNo   String?
+
+  // ค่าปรับชำระล่าช้า (บาท/วัน)
+  lateFeePerDay Float @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+// รายการบริการ/ค่าใช้จ่ายที่บันทึกไว้ใช้ซ้ำ เช่น ค่าที่จอดรถ ค่าส่วนกลาง
+model ServicePreset {
+  id        String   @id @default(cuid())
+  label     String
+  amount    Float    @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  building  String   @default("A") // อาคาร
+  number    String // เลขห้อง เช่น 101 (ไม่ซ้ำภายในอาคารเดียวกัน)
+  name      String? // ชื่อห้อง
+  sortOrder Int      @default(0) // ลำดับการแสดงผล
+  floor     Int      @default(1)
+  type      String   @default("ห้องพัดลม") // ประเภทห้อง
+  basePrice     Float @default(3000) // ค่าเช่าห้อง
+  rentFurniture Float @default(0) // ค่าเช่าเฟอร์นิเจอร์
+  rentCommon    Float @default(0) // ค่าสาธารณูปโภคส่วนกลาง
+  rentAircon    Float @default(0) // ค่าเช่าเครื่องปรับอากาศ
+  rentFridge    Float @default(0) // ค่าเช่าตู้เย็น
+  rentTv        Float @default(0) // ค่าเช่าโทรทัศน์
+  rentDiscount  Float @default(0) // ส่วนลดค่าเช่า
+  waterRate Float? // บาท/หน่วย — ถ้าว่างใช้ค่ากลางของหอ
+  elecRate  Float? // บาท/หน่วย — ถ้าว่างใช้ค่ากลางของหอ
+  note      String?
+  publicToken String? // โทเคนสำหรับลิงก์พอร์ทัลผู้เช่า (cuid สุ่ม)
+  createdAt DateTime @default(now())
+
+  tenants       Tenant[]
+  invoices      Invoice[]
+  transactions  Transaction[]
+  parcels       Parcel[]
+  issues        Issue[]
+  bookings      Booking[]
+  assets        Asset[]
+  vehicles      Vehicle[]
+  meterReadings MeterReading[]
+}
+
+// เลขมิเตอร์น้ำ-ไฟ ต่อห้องต่อรอบเดือน (จดแยกจากการออกบิล)
+model MeterReading {
+  id        String   @id @default(cuid())
+  period    String // YYYY-MM
+  water     Float    @default(0)
+  elec      Float    @default(0)
+  createdAt DateTime @default(now())
+
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, period])
+}
+
+// พัสดุ/ของฝากที่หอรับไว้ให้ผู้เช่า
+model Parcel {
+  id         String    @id @default(cuid())
+  recipient  String // ชื่อผู้รับ
+  carrier    String? // ขนส่ง เช่น Flash, Kerry, ไปรษณีย์
+  arrivedAt  DateTime  @default(now())
+  pickedUp   Boolean   @default(false)
+  pickedUpAt DateTime?
+  note       String?
+  createdAt  DateTime  @default(now())
+
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+// แจ้งซ่อม/ปัญหา
+model Issue {
+  id         String    @id @default(cuid())
+  title      String
+  detail     String?
+  status     String    @default("open") // open | in_progress | done
+  priority   String    @default("normal") // low | normal | high
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+// การจอง/นัดชมห้อง
+model Booking {
+  id        String   @id @default(cuid())
+  name      String // ชื่อผู้จอง
+  phone     String?
+  date      DateTime @default(now()) // วันที่นัด/จอง
+  status    String   @default("pending") // pending | confirmed | cancelled
+  deposit   Float    @default(0)
+  note      String?
+  createdAt DateTime @default(now())
+
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+// ทรัพย์สิน/ครุภัณฑ์ของหอ
+model Asset {
+  id        String   @id @default(cuid())
+  name      String
+  category  String? // หมวด เช่น เฟอร์นิเจอร์ เครื่องใช้ไฟฟ้า
+  quantity  Int      @default(1)
+  condition String   @default("good") // good | fair | broken
+  note      String?
+  createdAt DateTime @default(now())
+
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+// ทะเบียนยานพาหนะ
+model Vehicle {
+  id        String   @id @default(cuid())
+  plate     String // ทะเบียนรถ
+  kind      String   @default("car") // car | motorcycle
+  brand     String?
+  color     String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  roomId   String?
+  room     Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+}
+
+// พนักงาน/ทีมงานและสิทธิ์
+model Staff {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  role      String   @default("staff") // admin | manager | staff
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// รายรับ-รายจ่ายของหอพัก (นอกเหนือจากบิลค่าเช่า)
+model Transaction {
+  id        String   @id @default(cuid())
+  type      String // income | expense
+  category  String // หมวด เช่น ค่าเช่า ซ่อมบำรุง เงินเดือน
+  amount    Float    @default(0)
+  date      DateTime @default(now())
+  note      String?
+  createdAt DateTime @default(now())
+
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+}
+
+model Tenant {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?
+  idCard        String?
+  vehiclePlate  String? // ทะเบียนรถ
+  address       String? // ที่อยู่ผู้เข้าพัก (สำหรับสัญญา)
+  deposit       Float     @default(0)
+  depositPaid   Boolean   @default(false) // จ่ายเงินประกันแล้วหรือยัง
+  moveInWater   Float? // เลขมิเตอร์น้ำตอนเข้าพัก
+  moveInElec    Float? // เลขมิเตอร์ไฟตอนเข้าพัก
+  contractNote  String? // หมายเหตุสัญญา
+  moveInDate    DateTime  @default(now())
+  contractStart DateTime?
+  contractEnd   DateTime?
+  active        Boolean   @default(true) // ยังพักอยู่ไหม
+  createdAt     DateTime  @default(now())
+
+  roomId      String
+  room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  invoices    Invoice[]
+  vehicles    Vehicle[]
+  moveInItems MoveInItem[]
+}
+
+// รายการในใบเสร็จแรกเข้า เช่น ค่าเช่าเดือนแรก ค่าเฟอร์นิเจอร์ ส่วนลด (ติดลบได้)
+model MoveInItem {
+  id       String @id @default(cuid())
+  label    String
+  amount   Float  @default(0)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id        String    @id @default(cuid())
+  period    String // YYYY-MM
+  rent      Float     @default(0)
+  prevWater Float     @default(0)
+  currWater Float     @default(0)
+  prevElec  Float     @default(0)
+  currElec  Float     @default(0)
+  waterRate Float     @default(18)
+  elecRate  Float     @default(8)
+  other     Float     @default(0)
+  otherNote String?
+  status    String    @default("unpaid") // unpaid | paid
+  dueDate   DateTime?
+  paidDate  DateTime?
+  createdAt DateTime  @default(now())
+
+  roomId   String
+  room     Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  items InvoiceItem[]
+
+  @@unique([roomId, period])
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  label     String // ชื่อรายการ เช่น ค่าที่จอดรถ
+  amount    Float   @default(0)
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}

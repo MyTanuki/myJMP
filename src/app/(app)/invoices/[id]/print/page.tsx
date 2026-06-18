@@ -1,0 +1,147 @@
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  baht,
+  calcInvoice,
+  overdueInfo,
+  roomLabel,
+  thaiDate,
+  thaiMonth,
+} from "@/lib/format";
+import PrintButton from "./PrintButton";
+
+export default async function InvoicePrintPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const user = await currentUser();
+
+  const inv = await db.invoice.findUnique({
+    where: { id },
+    include: { room: true, tenant: true, items: true },
+  });
+  if (!inv) notFound();
+
+  const c = calcInvoice(inv);
+  const od = overdueInfo(inv, user?.lateFeePerDay ?? 0);
+  const grandTotal = c.total + od.lateFee;
+
+  const lines: { label: string; value: number }[] = [
+    { label: "ค่าเช่าห้อง", value: c.rent },
+    {
+      label: `ค่าน้ำ ${c.waterUnits} หน่วย × ${inv.waterRate}`,
+      value: c.waterCost,
+    },
+    {
+      label: `ค่าไฟ ${c.elecUnits} หน่วย × ${inv.elecRate}`,
+      value: c.elecCost,
+    },
+    ...inv.items.map((it) => ({ label: it.label, value: it.amount })),
+    ...(od.overdue && od.lateFee > 0
+      ? [{ label: `ค่าปรับล่าช้า ${od.daysLate} วัน`, value: od.lateFee }]
+      : []),
+  ];
+
+  return (
+    <div className="max-w-xl mx-auto">
+      <PrintButton />
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 print:border-0 print:rounded-none">
+        <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
+          <div>
+            <div className="text-xl font-bold text-slate-800">
+              {user?.dormName}
+            </div>
+            <div className="text-sm text-slate-500 mt-1">ใบแจ้งค่าเช่า</div>
+            {user?.address && (
+              <div className="text-xs text-slate-400 mt-1 whitespace-pre-line">
+                {user.address}
+              </div>
+            )}
+            {user?.taxId && (
+              <div className="text-xs text-slate-400">
+                เลขผู้เสียภาษี {user.taxId}
+              </div>
+            )}
+          </div>
+          <div className="text-right text-sm text-slate-500">
+            <div>ประจำเดือน{thaiMonth(inv.period)}</div>
+            <div>ห้อง {roomLabel(inv.room.building, inv.room.number)}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+          <div className="text-slate-500">ผู้เช่า</div>
+          <div className="text-right text-slate-800">
+            {inv.tenant?.name ?? "-"}
+          </div>
+          <div className="text-slate-500">กำหนดชำระ</div>
+          <div className="text-right text-slate-800">
+            {thaiDate(inv.dueDate)}
+          </div>
+          <div className="text-slate-500">สถานะ</div>
+          <div className="text-right">
+            {inv.status === "paid" ? (
+              <span className="text-emerald-600 font-medium">ชำระแล้ว</span>
+            ) : (
+              <span className="text-red-600 font-medium">ค้างชำระ</span>
+            )}
+          </div>
+        </div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-400">
+              <th className="text-left font-medium py-2">รายการ</th>
+              <th className="text-right font-medium py-2">จำนวนเงิน</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((l, i) => (
+              <tr key={i} className="border-b border-slate-50">
+                <td className="py-2 text-slate-700">{l.label}</td>
+                <td className="py-2 text-right text-slate-700">
+                  {baht(l.value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td className="py-3 font-semibold text-slate-800">
+                ยอดรวมทั้งสิ้น
+              </td>
+              <td className="py-3 text-right text-xl font-bold text-brand-700">
+                {baht(grandTotal)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+
+        {(user?.bankName || user?.bankAccountNo) && (
+          <div className="mt-6 rounded-xl bg-slate-50 p-4 text-sm">
+            <div className="font-medium text-slate-700 mb-1">ช่องทางชำระเงิน</div>
+            <div className="text-slate-600">
+              {user?.bankName}
+              {user?.bankAccountName ? ` · ${user.bankAccountName}` : ""}
+            </div>
+            {user?.bankAccountNo && (
+              <div className="text-slate-600">
+                เลขที่บัญชี {user.bankAccountNo}
+              </div>
+            )}
+          </div>
+        )}
+
+        {user?.billNote && (
+          <div className="mt-4 text-xs text-slate-400 whitespace-pre-line">
+            {user.billNote}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

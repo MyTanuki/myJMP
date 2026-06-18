@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f5f7fa;
+  --foreground: #1f2937;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* แบรนด์ฟ้า (เปลี่ยนจากส้มของ horganice) */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ปรับ scrollbar ให้ดูสะอาด */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+/* ไฟกระพริบสำหรับห้องที่รอแจ้งซ่อม (ทับสีสถานะการชำระเงิน) */
+@keyframes repairBlink {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+.repair-blink {
+  animation: repairBlink 1.2s ease-in-out infinite;
+}

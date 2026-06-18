@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "PowerShell(node -v; npm -v; \\(Get-Location\\).Path)",
+      "PowerShell(npm install prisma @prisma/client bcryptjs jose 2>&1)",
+      "PowerShell(npm install -D @types/bcryptjs 2>&1)",
+      "PowerShell($env:DATABASE_URL=\"file:./dev.db\"; npx prisma init --datasource-provider sqlite 2>&1 | Select-Object -Last 20)",
+      "PowerShell(Select-String -Path \"C:\\\\github\\\\myJMP\\\\src\\\\generated\\\\prisma\\\\internal\\\\class.ts\" -Pattern \"adapter|datasourceUrl|PrismaClientOptions|connectionString|driver\" | Select-Object -First 15 | ForEach-Object { $_.Line.Trim\\(\\) })",
+      "Bash(node -e \"const m=require\\('@prisma/adapter-better-sqlite3'\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "PowerShell(claude --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npx --version)",
+      "PowerShell($f=\"$env:USERPROFILE\\\\.claude.json\"; \\(Get-Item $f\\).Length; $j=Get-Content $f -Raw | ConvertFrom-Json; \"TOP-LEVEL mcpServers:\"; if\\($j.mcpServers\\){ $j.mcpServers.PSObject.Properties.Name } else { \"none\" })",
+      "PowerShell($j=Get-Content \"$env:USERPROFILE\\\\.claude.json\" -Raw | ConvertFrom-Json; $j.PSObject.Properties.Name)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "mcp__Claude_in_Chrome__select_browser",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__read_page",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__visualize__read_me"
+    ]
+  }
+}

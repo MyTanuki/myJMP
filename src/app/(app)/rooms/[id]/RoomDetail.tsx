@@ -198,9 +198,17 @@ function TenantTab({ data }: { data: RoomDetailData }) {
     <Section
       title="ข้อมูลผู้เช่า"
       right={
-        <Link href="/tenants" className="text-sm text-brand-700 hover:underline">
-          จัดการผู้เช่า
-        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          <Link
+            href={`/tenants?assign=${data.id}`}
+            className="text-brand-700 hover:underline"
+          >
+            เปลี่ยน/ย้ายผู้เช่า
+          </Link>
+          <Link href="/tenants" className="text-slate-500 hover:underline">
+            จัดการผู้เช่า
+          </Link>
+        </div>
       }
     >
       <div className="flex items-center gap-3">

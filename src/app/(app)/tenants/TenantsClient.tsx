@@ -82,9 +82,19 @@ export default function TenantsClient({
 
   const list = tenants.filter((t) => (showInactive ? true : t.active));
 
+  // ผู้เช่าเดิมของห้องที่กำลังจะ assign (ถ้ามี) — เพื่อแจ้งว่าใครจะถูกย้ายออก
+  const currentOccupant = assignRoom
+    ? tenants.find((t) => t.roomId === assignRoom.id && t.active)
+    : undefined;
+
   const handleAssign = async (t: TenantRow) => {
     if (!assignRoom) return;
-    if (!confirm(`ย้าย ${t.name} เข้าห้อง ${assignRoom.label}?`)) return;
+    const occ =
+      currentOccupant && currentOccupant.id !== t.id ? currentOccupant : null;
+    const msg = occ
+      ? `ห้อง ${assignRoom.label} มีผู้เช่า “${occ.name}” อยู่\nจะย้าย “${occ.name}” ออก และนำ “${t.name}” เข้าแทน?`
+      : `ย้าย “${t.name}” เข้าห้อง ${assignRoom.label}?`;
+    if (!confirm(msg)) return;
     await assignTenantToRoom(t.id, assignRoom.id);
     router.push(`/rooms/${assignRoom.id}`);
   };
@@ -157,6 +167,14 @@ export default function TenantsClient({
       <Modal open={adding} onClose={() => setAdding(false)} title="เพิ่มผู้เช่า">
         <form
           action={async (fd) => {
+            if (
+              assignRoom &&
+              currentOccupant &&
+              !confirm(
+                `ห้อง ${assignRoom.label} มีผู้เช่า “${currentOccupant.name}” อยู่\nเพิ่มผู้เช่าใหม่จะย้าย “${currentOccupant.name}” ออก ยืนยันหรือไม่?`
+              )
+            )
+              return;
             await createTenant(fd);
             setAdding(false);
             if (assignRoom) router.push(`/rooms/${assignRoom.id}`);

@@ -17,6 +17,12 @@ export async function createTenant(formData: FormData) {
   const roomId = String(formData.get("roomId") ?? "");
   if (!name || !roomId) return;
 
+  // ห้องหนึ่งมีผู้เช่าที่ใช้งานได้คนเดียว — ย้ายคนเดิมออกก่อน (ไม่มีผลถ้าห้องว่าง)
+  await db.tenant.updateMany({
+    where: { roomId, active: true },
+    data: { active: false },
+  });
+
   await db.tenant.create({
     data: {
       name,
@@ -77,6 +83,11 @@ export async function moveOut(formData: FormData) {
 // ย้ายผู้เช่าที่มีอยู่แล้วเข้าห้อง (ใช้จากหน้า /rooms/[id] → /tenants?assign=roomId)
 export async function assignTenantToRoom(tenantId: string, roomId: string) {
   if (!tenantId || !roomId) return;
+  // 1 ห้องมีผู้เช่าที่ใช้งานได้คนเดียว — ย้ายคนเดิมของห้องนี้ออกก่อน
+  await db.tenant.updateMany({
+    where: { roomId, active: true, NOT: { id: tenantId } },
+    data: { active: false },
+  });
   await db.tenant.update({
     where: { id: tenantId },
     data: { roomId, active: true },

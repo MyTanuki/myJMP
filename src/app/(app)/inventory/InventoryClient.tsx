@@ -108,6 +108,7 @@ export default function InventoryClient({
               <button
                 type="submit"
                 formAction={async (fd) => {
+                  if (!confirm("ลบทรัพย์สินนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                   await deleteAsset(fd);
                   setEditing(null);
                 }}

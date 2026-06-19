@@ -2,30 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/auth";
-
-export async function createRoom(formData: FormData) {
-  const user = await currentUser();
-  if (!user) return;
-
-  const number = String(formData.get("number") ?? "").trim();
-  if (!number) return;
-
-  await db.room.create({
-    data: {
-      number,
-      floor: Number(formData.get("floor") ?? 1) || 1,
-      type: String(formData.get("type") ?? "ห้องพัดลม").trim(),
-      ...rentData(formData),
-      waterRate: optionalRate(formData.get("waterRate")),
-      elecRate: optionalRate(formData.get("elecRate")),
-      note: String(formData.get("note") ?? "").trim() || null,
-    },
-  });
-
-  revalidatePath("/rooms");
-  revalidatePath("/");
-}
 
 function optionalRate(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -67,16 +43,8 @@ export async function updateRoom(formData: FormData) {
     },
   });
 
-  revalidatePath("/rooms");
-  revalidatePath("/invoices");
-}
-
-export async function deleteRoom(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await db.room.delete({ where: { id } });
-  revalidatePath("/rooms");
-  revalidatePath("/");
+  // "layout" จำเป็นเพื่อล้าง client Router Cache ไม่งั้นเปิดแก้ไขซ้ำจะเห็นค่าเดิม
+  revalidatePath("/", "layout");
 }
 
 export async function generatePortalLink(formData: FormData) {
@@ -86,5 +54,5 @@ export async function generatePortalLink(formData: FormData) {
     where: { id },
     data: { publicToken: crypto.randomUUID().replace(/-/g, "") },
   });
-  revalidatePath("/rooms");
+  revalidatePath("/", "layout");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Modal, { Input, Select } from "@/components/Modal";
+import Modal, { Input, Select, Textarea } from "@/components/Modal";
 import { Badge } from "@/components/ui";
 import { thaiDate } from "@/lib/format";
 import { createIssue, updateIssue, deleteIssue } from "./actions";
@@ -136,6 +136,7 @@ export default function IssuesClient({
               <button
                 type="submit"
                 formAction={async (fd) => {
+                  if (!confirm("ลบรายการแจ้งซ่อมนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                   await deleteIssue(fd);
                   setEditing(null);
                 }}
@@ -163,7 +164,12 @@ function IssueFields({
   return (
     <>
       <Input label="หัวข้อ" name="title" defaultValue={issue?.title} required />
-      <Input label="รายละเอียด" name="detail" defaultValue={issue?.detail ?? ""} />
+      <Textarea
+        label="รายละเอียด / ข้อมูลเพิ่มเติม"
+        name="detail"
+        defaultValue={issue?.detail ?? ""}
+        placeholder="อธิบายอาการ จุดที่ต้องซ่อม หรือข้อมูลเพิ่มเติม…"
+      />
       <div className="grid grid-cols-2 gap-3">
         <Select
           label="ห้อง (ถ้ามี)"

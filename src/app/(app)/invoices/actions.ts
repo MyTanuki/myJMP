@@ -57,8 +57,7 @@ export async function createInvoice(formData: FormData) {
     });
   }
 
-  revalidatePath("/invoices");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 function parseItems(raw: FormDataEntryValue | null): {
@@ -91,14 +90,12 @@ export async function togglePaid(formData: FormData) {
       paidDate: paid ? new Date() : null,
     },
   });
-  revalidatePath("/invoices");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteInvoice(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.invoice.delete({ where: { id } });
-  revalidatePath("/invoices");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }

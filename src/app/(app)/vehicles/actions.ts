@@ -23,7 +23,7 @@ export async function createVehicle(formData: FormData) {
     },
   });
 
-  revalidatePath("/vehicles");
+  revalidatePath("/", "layout");
 }
 
 export async function updateVehicle(formData: FormData) {
@@ -43,12 +43,12 @@ export async function updateVehicle(formData: FormData) {
     },
   });
 
-  revalidatePath("/vehicles");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteVehicle(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.vehicle.delete({ where: { id } });
-  revalidatePath("/vehicles");
+  revalidatePath("/", "layout");
 }

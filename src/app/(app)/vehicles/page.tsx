@@ -1,18 +1,32 @@
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhere,
+  roomBuildingWhereNullable,
+} from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
 import VehiclesClient, { VehicleRow } from "./VehiclesClient";
 
 export default async function VehiclesPage() {
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [vehicles, rooms, tenants] = await Promise.all([
     db.vehicle.findMany({
+      where: roomBuildingWhereNullable(allowed),
       orderBy: { createdAt: "desc" },
       include: { room: true, tenant: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
-    db.tenant.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    db.tenant.findMany({
+      where: { active: true, ...roomBuildingWhere(allowed) },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const rows: VehicleRow[] = vehicles.map((v) => ({

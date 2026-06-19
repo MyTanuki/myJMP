@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
 import { baht, roomLabel } from "@/lib/format";
-import { createRoom, updateRoom, generatePortalLink } from "./actions";
+import { updateRoom, generatePortalLink } from "./actions";
 
 export type RoomStatus = "vacant" | "paid" | "unpaid" | "nobill";
 
@@ -65,7 +65,6 @@ const STATUS: Record<
 
 export default function RoomsClient({ rooms }: { rooms: RoomRow[] }) {
   const [editing, setEditing] = useState<RoomRow | null>(null);
-  const [adding, setAdding] = useState(false);
 
   const buildings = useMemo(() => {
     const map = new Map<string, Map<number, RoomRow[]>>();
@@ -94,12 +93,6 @@ export default function RoomsClient({ rooms }: { rooms: RoomRow[] }) {
             รอซ่อม
           </span>
         </div>
-        <button
-          onClick={() => setAdding(true)}
-          className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2.5 rounded-xl transition"
-        >
-          + เพิ่มห้อง
-        </button>
       </div>
 
       <div className="mt-6 space-y-5">
@@ -167,20 +160,6 @@ export default function RoomsClient({ rooms }: { rooms: RoomRow[] }) {
           </div>
         ))}
       </div>
-
-      {/* เพิ่มห้อง */}
-      <Modal open={adding} onClose={() => setAdding(false)} title="เพิ่มห้องพัก">
-        <form
-          action={async (fd) => {
-            await createRoom(fd);
-            setAdding(false);
-          }}
-          className="space-y-4"
-        >
-          <RoomFields />
-          <SubmitRow label="บันทึก" />
-        </form>
-      </Modal>
 
       {/* แก้ไขห้อง */}
       <Modal
@@ -263,12 +242,6 @@ function PortalLink({ room }: { room: RoomRow }) {
 function RoomFields({ room }: { room?: RoomRow }) {
   return (
     <>
-      {!room && (
-        <div className="grid grid-cols-2 gap-3">
-          <Input label="เลขห้อง" name="number" required />
-          <Input label="ชั้น" name="floor" type="number" min={1} defaultValue={1} />
-        </div>
-      )}
       <Select label="ประเภทห้อง" name="type" defaultValue={room?.type ?? TYPES[0]}>
         {TYPES.map((t) => (
           <option key={t}>{t}</option>
@@ -306,13 +279,5 @@ function RoomFields({ room }: { room?: RoomRow }) {
       </div>
       <Input label="หมายเหตุ" name="note" defaultValue={room?.note ?? ""} />
     </>
-  );
-}
-
-function SubmitRow({ label }: { label: string }) {
-  return (
-    <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
-      {label}
-    </button>
   );
 }

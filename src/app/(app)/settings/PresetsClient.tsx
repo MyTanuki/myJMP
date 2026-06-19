@@ -27,7 +27,12 @@ export default function PresetsClient({ presets }: { presets: Preset[] }) {
               <span className="text-slate-500">{baht(p.amount)}</span>
               <form action={deletePreset}>
                 <input type="hidden" name="id" value={p.id} />
-                <button className="text-red-500 hover:text-red-600 text-sm">
+                <button
+                  onClick={(e) => {
+                    if (!confirm("ลบรายการนี้?")) e.preventDefault();
+                  }}
+                  className="text-red-500 hover:text-red-600 text-sm"
+                >
                   ลบ
                 </button>
               </form>

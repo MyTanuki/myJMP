@@ -38,6 +38,7 @@ export async function updateContract(formData: FormData) {
     },
   });
 
+  revalidatePath("/", "layout");
   if (roomId) revalidatePath(`/rooms/${roomId}`);
 }
 
@@ -47,6 +48,7 @@ export async function toggleDepositPaid(formData: FormData) {
   if (!tenantId) return;
   const paid = String(formData.get("paid") ?? "") === "true";
   await db.tenant.update({ where: { id: tenantId }, data: { depositPaid: paid } });
+  revalidatePath("/", "layout");
   if (roomId) revalidatePath(`/rooms/${roomId}`);
 }
 
@@ -77,6 +79,7 @@ export async function saveMoveInItems(formData: FormData) {
     });
   }
 
+  revalidatePath("/", "layout");
   if (roomId) revalidatePath(`/rooms/${roomId}`);
 }
 

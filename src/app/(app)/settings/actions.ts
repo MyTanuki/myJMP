@@ -25,8 +25,7 @@ export async function updateSettings(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 export async function updateBillHeader(formData: FormData) {
@@ -43,7 +42,7 @@ export async function updateBillHeader(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath("/", "layout");
 }
 
 export async function updateBank(formData: FormData) {
@@ -59,7 +58,7 @@ export async function updateBank(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath("/", "layout");
 }
 
 export async function updatePenalty(formData: FormData) {
@@ -71,7 +70,7 @@ export async function updatePenalty(formData: FormData) {
     data: { lateFeePerDay: Number(formData.get("lateFeePerDay") ?? 0) || 0 },
   });
 
-  revalidatePath("/settings");
+  revalidatePath("/", "layout");
 }
 
 export async function createPreset(formData: FormData) {
@@ -85,14 +84,12 @@ export async function createPreset(formData: FormData) {
     data: { label, amount: Number(formData.get("amount") ?? 0) || 0 },
   });
 
-  revalidatePath("/settings");
-  revalidatePath("/invoices");
+  revalidatePath("/", "layout");
 }
 
 export async function deletePreset(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.servicePreset.delete({ where: { id } });
-  revalidatePath("/settings");
-  revalidatePath("/invoices");
+  revalidatePath("/", "layout");
 }

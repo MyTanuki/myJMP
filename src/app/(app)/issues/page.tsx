@@ -1,15 +1,25 @@
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhereNullable,
+} from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import IssuesClient, { IssueRow } from "./IssuesClient";
 
 export default async function IssuesPage() {
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [issues, rooms] = await Promise.all([
     db.issue.findMany({
+      where: roomBuildingWhereNullable(allowed),
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       include: { room: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
   ]);

@@ -1,11 +1,25 @@
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhere,
+} from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
 import TenantsClient, { TenantRow, RoomOption } from "./TenantsClient";
 
-export default async function TenantsPage() {
+export default async function TenantsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ assign?: string }>;
+}) {
+  const sp = await searchParams;
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [tenants, rooms] = await Promise.all([
     db.tenant.findMany({
+      where: roomBuildingWhere(allowed),
       orderBy: [
         { active: "desc" },
         { room: { building: "asc" } },
@@ -15,6 +29,7 @@ export default async function TenantsPage() {
       include: { room: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
   ]);
@@ -25,6 +40,11 @@ export default async function TenantsPage() {
     phone: t.phone,
     idCard: t.idCard,
     vehiclePlate: t.vehiclePlate,
+    address: t.address,
+    subdistrict: t.subdistrict,
+    district: t.district,
+    province: t.province,
+    postalCode: t.postalCode,
     deposit: t.deposit,
     moveInDate: t.moveInDate.toISOString(),
     contractStart: t.contractStart?.toISOString() ?? null,
@@ -39,6 +59,10 @@ export default async function TenantsPage() {
     number: roomLabel(r.building, r.number),
   }));
 
+  const assign = sp.assign
+    ? roomOptions.find((r) => r.id === sp.assign)
+    : undefined;
+
   const activeCount = rows.filter((r) => r.active).length;
 
   return (
@@ -47,7 +71,11 @@ export default async function TenantsPage() {
         title="ผู้เช่า"
         subtitle={`พักอยู่ ${activeCount} คน · ทั้งหมด ${rows.length} ราย`}
       />
-      <TenantsClient tenants={rows} rooms={roomOptions} />
+      <TenantsClient
+        tenants={rows}
+        rooms={roomOptions}
+        assignRoom={assign ? { id: assign.id, label: assign.number } : undefined}
+      />
       {rows.length === 0 && (
         <EmptyState
           icon="👤"

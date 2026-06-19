@@ -93,7 +93,12 @@ export default function ParcelsClient({
             </form>
             <form action={deleteParcel}>
               <input type="hidden" name="id" value={p.id} />
-              <button className="px-2 py-1.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition">
+              <button
+                onClick={(e) => {
+                  if (!confirm("ลบรายการพัสดุนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) e.preventDefault();
+                }}
+                className="px-2 py-1.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition"
+              >
                 ลบ
               </button>
             </form>

@@ -1,15 +1,25 @@
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhereNullable,
+} from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
 import BookingsClient, { BookingRow } from "./BookingsClient";
 
 export default async function BookingsPage() {
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [bookings, rooms] = await Promise.all([
     db.booking.findMany({
+      where: roomBuildingWhereNullable(allowed),
       orderBy: { date: "desc" },
       include: { room: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
   ]);

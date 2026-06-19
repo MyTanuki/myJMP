@@ -1,15 +1,25 @@
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhereNullable,
+} from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import ParcelsClient, { ParcelRow, RoomOption } from "./ParcelsClient";
 
 export default async function ParcelsPage() {
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [parcels, rooms] = await Promise.all([
     db.parcel.findMany({
+      where: roomBuildingWhereNullable(allowed),
       orderBy: [{ pickedUp: "asc" }, { arrivedAt: "desc" }],
       include: { room: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
   ]);

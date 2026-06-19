@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 
 export default function Modal({
   open,
@@ -13,6 +13,8 @@ export default function Modal({
   title: string;
   children: ReactNode;
 }) {
+  const downOnOverlay = useRef(false);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -25,12 +27,15 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
-      onClick={onClose}
+      // ปิดเฉพาะเมื่อ "กดและปล่อย" บนพื้นหลังจริง ๆ — กันการลากเมาส์จากในกรอบออกมาปล่อยข้างนอกแล้วปิดเอง
+      onMouseDown={(e) => {
+        downOnOverlay.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && downOnOverlay.current) onClose();
+      }}
     >
-      <div
-        className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white">
           <h2 className="font-semibold text-slate-800">{title}</h2>
           <button
@@ -57,6 +62,22 @@ export function Input({
       <input
         {...props}
         className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition"
+      />
+    </label>
+  );
+}
+
+export function Textarea({
+  label,
+  ...props
+}: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium text-slate-600">{label}</span>
+      <textarea
+        rows={4}
+        {...props}
+        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition resize-y"
       />
     </label>
   );

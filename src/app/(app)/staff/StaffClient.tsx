@@ -3,15 +3,14 @@
 import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
 import { Badge } from "@/components/ui";
-import { createStaff, updateStaff, deleteStaff } from "./actions";
+import { createUser, updateUser, deleteUser } from "./actions";
 
-export type StaffRow = {
+export type UserRow = {
   id: string;
   name: string;
-  email: string | null;
-  phone: string | null;
+  email: string;
   role: string;
-  active: boolean;
+  isSelf: boolean;
 };
 
 const ROLE: Record<string, { label: string; tone: string }> = {
@@ -20,85 +19,111 @@ const ROLE: Record<string, { label: string; tone: string }> = {
   staff: { label: "พนักงาน", tone: "slate" },
 };
 
-export default function StaffClient({ staff }: { staff: StaffRow[] }) {
-  const [editing, setEditing] = useState<StaffRow | null>(null);
+export default function StaffClient({ users }: { users: UserRow[] }) {
+  const [editing, setEditing] = useState<UserRow | null>(null);
   const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openAdd = () => {
+    setError(null);
+    setAdding(true);
+  };
+  const openEdit = (u: UserRow) => {
+    setError(null);
+    setEditing(u);
+  };
+  const closeAll = () => {
+    setError(null);
+    setAdding(false);
+    setEditing(null);
+  };
 
   return (
     <>
       <button
-        onClick={() => setAdding(true)}
+        onClick={openAdd}
         className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2.5 rounded-xl transition"
       >
-        + เพิ่มพนักงาน
+        + เพิ่มผู้ใช้
       </button>
 
       <div className="mt-6 space-y-2">
-        {staff.map((s) => (
+        {users.map((u) => (
           <button
-            key={s.id}
-            onClick={() => setEditing(s)}
+            key={u.id}
+            onClick={() => openEdit(u)}
             className="w-full text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-brand-200 hover:shadow transition flex flex-wrap items-center gap-3"
           >
             <div className="grid place-items-center w-11 h-11 rounded-full bg-brand-50 text-brand-700 font-semibold shrink-0">
-              {s.name.charAt(0)}
+              {u.name.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-medium text-slate-800 truncate flex items-center gap-2">
-                {s.name}
-                {!s.active && <Badge tone="slate">ปิดใช้งาน</Badge>}
+                {u.name}
+                {u.isSelf && <Badge tone="green">คุณ</Badge>}
               </div>
-              <div className="text-sm text-slate-400 truncate">
-                {[s.email, s.phone].filter(Boolean).join(" · ") || "—"}
-              </div>
+              <div className="text-sm text-slate-400 truncate">{u.email}</div>
             </div>
-            <Badge tone={ROLE[s.role]?.tone ?? "slate"}>
-              {ROLE[s.role]?.label ?? s.role}
+            <Badge tone={ROLE[u.role]?.tone ?? "slate"}>
+              {ROLE[u.role]?.label ?? u.role}
             </Badge>
           </button>
         ))}
       </div>
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="เพิ่มพนักงาน">
+      <Modal open={adding} onClose={closeAll} title="เพิ่มผู้ใช้">
         <form
           action={async (fd) => {
-            await createStaff(fd);
-            setAdding(false);
+            const res = await createUser(fd);
+            if (res?.error) setError(res.error);
+            else closeAll();
           }}
           className="space-y-4"
         >
-          <StaffFields />
+          <UserFields />
+          <ErrorNote error={error} />
           <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
-            บันทึก
+            สร้างบัญชี
           </button>
         </form>
       </Modal>
 
-      <Modal open={!!editing} onClose={() => setEditing(null)} title="แก้ไขพนักงาน">
+      <Modal open={!!editing} onClose={closeAll} title="แก้ไขบัญชีผู้ใช้">
         {editing && (
           <form
             action={async (fd) => {
-              await updateStaff(fd);
-              setEditing(null);
+              const res = await updateUser(fd);
+              if (res?.error) setError(res.error);
+              else closeAll();
             }}
             className="space-y-4"
           >
             <input type="hidden" name="id" value={editing.id} />
-            <StaffFields staff={editing} withActive />
+            <UserFields user={editing} />
+            <ErrorNote error={error} />
             <div className="flex items-center gap-2">
               <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึก
               </button>
-              <button
-                type="submit"
-                formAction={async (fd) => {
-                  await deleteStaff(fd);
-                  setEditing(null);
-                }}
-                className="px-4 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-medium transition"
-              >
-                ลบ
-              </button>
+              {!editing.isSelf && (
+                <button
+                  type="submit"
+                  formAction={async (fd) => {
+                    if (
+                      !confirm(
+                        "ลบบัญชีผู้ใช้นี้?\nผู้ใช้จะเข้าสู่ระบบไม่ได้อีก"
+                      )
+                    )
+                      return;
+                    const res = await deleteUser(fd);
+                    if (res?.error) setError(res.error);
+                    else closeAll();
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-medium transition"
+                >
+                  ลบ
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -107,34 +132,45 @@ export default function StaffClient({ staff }: { staff: StaffRow[] }) {
   );
 }
 
-function StaffFields({
-  staff,
-  withActive,
-}: {
-  staff?: StaffRow;
-  withActive?: boolean;
-}) {
+function ErrorNote({ error }: { error: string | null }) {
+  if (!error) return null;
+  return (
+    <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+  );
+}
+
+function UserFields({ user }: { user?: UserRow }) {
+  const isEdit = !!user;
   return (
     <>
-      <Input label="ชื่อ-นามสกุล" name="name" defaultValue={staff?.name} required />
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="อีเมล" name="email" defaultValue={staff?.email ?? ""} />
-        <Input label="เบอร์โทร" name="phone" defaultValue={staff?.phone ?? ""} />
-      </div>
-      <Select label="บทบาท" name="role" defaultValue={staff?.role ?? "staff"}>
+      <Input label="ชื่อ-นามสกุล" name="name" defaultValue={user?.name} required />
+      <Input
+        label="อีเมล (ใช้เข้าสู่ระบบ)"
+        name="email"
+        type="email"
+        defaultValue={user?.email ?? ""}
+        required
+        autoComplete="off"
+      />
+      <Input
+        label={isEdit ? "รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)" : "รหัสผ่าน"}
+        name="password"
+        type="password"
+        placeholder={isEdit ? "••••••••" : "อย่างน้อย 6 ตัวอักษร"}
+        required={!isEdit}
+        minLength={6}
+        autoComplete="new-password"
+      />
+      <Select label="บทบาท" name="role" defaultValue={user?.role ?? ""}>
+        {!isEdit && <option value="">— เลือกบทบาท —</option>}
         <option value="admin">ผู้ดูแลระบบ (เข้าถึงทุกอย่าง)</option>
-        <option value="manager">ผู้จัดการ (จัดการห้อง บิล ผู้เช่า)</option>
+        <option value="manager">ผู้จัดการ (ห้อง บิล ผู้เช่า รายงาน)</option>
         <option value="staff">พนักงาน (งานประจำวัน)</option>
       </Select>
-      {withActive && (
-        <Select
-          label="สถานะ"
-          name="active"
-          defaultValue={staff?.active ? "true" : "false"}
-        >
-          <option value="true">ใช้งาน</option>
-          <option value="false">ปิดใช้งาน</option>
-        </Select>
+      {user?.isSelf && (
+        <p className="text-xs text-slate-400">
+          นี่คือบัญชีของคุณ — เปลี่ยนบทบาทตัวเองหรือลบบัญชีตัวเองไม่ได้
+        </p>
       )}
     </>
   );

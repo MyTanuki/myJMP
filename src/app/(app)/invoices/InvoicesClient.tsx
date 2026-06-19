@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal, { Input } from "@/components/Modal";
+import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
 import { baht, calcInvoice, overdueInfo, roomLabel } from "@/lib/format";
 import { createInvoice, togglePaid, deleteInvoice } from "./actions";
@@ -332,10 +333,9 @@ function InvoiceForm({
         ))}
       </div>
 
-      <Input
+      <DatePicker
         label="กำหนดชำระ"
         name="dueDate"
-        type="date"
         defaultValue={inv?.dueDate ? inv.dueDate.slice(0, 10) : ""}
       />
 
@@ -385,6 +385,7 @@ function InvoiceForm({
             <button
               type="submit"
               formAction={async (fd) => {
+                if (!confirm("ลบบิลนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                 await deleteInvoice(fd);
                 onDone();
               }}

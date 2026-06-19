@@ -31,6 +31,7 @@ const NAV: NavItem[] = [
     label: "ตั้งค่า",
     icon: "⚙️",
     children: [
+      { href: "/settings", label: "ตั้งค่าทั่วไป", icon: "🔧" },
       { href: "/settings/rooms", label: "จัดการห้องพัก", icon: "🏗️" },
       { href: "/staff", label: "พนักงาน", icon: "🧑‍💼" },
       { href: "/subscription", label: "แพ็กเกจ", icon: "💎" },
@@ -51,6 +52,18 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // เมนูย่อยที่กางอยู่ — เริ่มต้นกางอัตโนมัติถ้าหน้าปัจจุบันอยู่ในกลุ่มนั้น
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const item of NAV) {
+      if (item.children?.some((c) => pathname.startsWith(c.href))) {
+        init[item.href] = true;
+      }
+    }
+    return init;
+  });
+  const toggleMenu = (href: string) =>
+    setOpenMenus((m) => ({ ...m, [href]: !m[href] }));
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -126,41 +139,65 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {nav.map((item) => (
-            <div key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
-                  isActive(item.href)
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
-              </Link>
-              {item.children && item.children.length > 0 && (
-                <div className="mt-1 ml-5 pl-3 border-l border-slate-100 space-y-1">
-                  {item.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      onClick={() => setOpen(false)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition ${
-                        isActive(child.href)
-                          ? "bg-brand-50 text-brand-700 font-medium"
-                          : "text-slate-500 hover:bg-slate-50"
+          {nav.map((item) => {
+            const hasChildren = !!item.children && item.children.length > 0;
+            const isOpen = openMenus[item.href] ?? false;
+            const rowClass = `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
+              isActive(item.href)
+                ? "bg-brand-50 text-brand-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`;
+            return (
+              <div key={item.href}>
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleMenu(item.href)}
+                    aria-expanded={isOpen}
+                    className={`w-full ${rowClass}`}
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    <span
+                      className={`text-[10px] text-slate-400 transition-transform duration-200 ${
+                        isOpen ? "rotate-90" : ""
                       }`}
                     >
-                      <span className="text-sm">{child.icon}</span>
-                      <span className="flex-1">{child.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                      ▶
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={rowClass}
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <span className="flex-1">{item.label}</span>
+                  </Link>
+                )}
+                {hasChildren && isOpen && (
+                  <div className="mt-1 ml-5 pl-3 border-l border-slate-100 space-y-1">
+                    {item.children!.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition ${
+                          pathname === child.href
+                            ? "bg-brand-50 text-brand-700 font-medium"
+                            : "text-slate-500 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="text-sm">{child.icon}</span>
+                        <span className="flex-1">{child.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="p-3 border-t border-slate-100">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
+import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
 import { baht, thaiDate } from "@/lib/format";
 import { createBooking, updateBooking, deleteBooking } from "./actions";
@@ -116,6 +117,7 @@ export default function BookingsClient({
               <button
                 type="submit"
                 formAction={async (fd) => {
+                  if (!confirm("ลบรายการจองนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                   await deleteBooking(fd);
                   setEditing(null);
                 }}
@@ -143,10 +145,9 @@ function BookingFields({
       <Input label="ชื่อผู้จอง" name="name" defaultValue={booking?.name} required />
       <div className="grid grid-cols-2 gap-3">
         <Input label="เบอร์โทร" name="phone" defaultValue={booking?.phone ?? ""} />
-        <Input
+        <DatePicker
           label="วันที่นัด"
           name="date"
-          type="date"
           defaultValue={
             booking ? toInput(booking.date) : new Date().toISOString().slice(0, 10)
           }

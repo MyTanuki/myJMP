@@ -108,6 +108,7 @@ export default function VehiclesClient({
               <button
                 type="submit"
                 formAction={async (fd) => {
+                  if (!confirm("ลบข้อมูลยานพาหนะนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                   await deleteVehicle(fd);
                   setEditing(null);
                 }}

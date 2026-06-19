@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireAccess } from "@/lib/auth";
+import { requireAccess, currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhereNullable,
+} from "@/lib/permissions";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { baht, currentPeriod, roomLabel, thaiMonth } from "@/lib/format";
 import FinanceClient, { TxRow, RoomOption } from "./FinanceClient";
@@ -17,6 +22,8 @@ export default async function FinancePage({
   searchParams: Promise<{ period?: string }>;
 }) {
   await requireAccess("/finance");
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const sp = await searchParams;
   const period =
     sp.period && /^\d{4}-\d{2}$/.test(sp.period) ? sp.period : currentPeriod();
@@ -27,11 +34,12 @@ export default async function FinancePage({
 
   const [txs, rooms] = await Promise.all([
     db.transaction.findMany({
-      where: { date: { gte: start, lt: end } },
+      where: { date: { gte: start, lt: end }, ...roomBuildingWhereNullable(allowed) },
       orderBy: { date: "desc" },
       include: { room: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
   ]);

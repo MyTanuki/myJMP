@@ -28,8 +28,7 @@ export async function createTransaction(formData: FormData) {
     },
   });
 
-  revalidatePath("/finance");
-  revalidatePath("/reports");
+  revalidatePath("/", "layout");
 }
 
 export async function updateTransaction(formData: FormData) {
@@ -50,14 +49,12 @@ export async function updateTransaction(formData: FormData) {
     },
   });
 
-  revalidatePath("/finance");
-  revalidatePath("/reports");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteTransaction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.transaction.delete({ where: { id } });
-  revalidatePath("/finance");
-  revalidatePath("/reports");
+  revalidatePath("/", "layout");
 }

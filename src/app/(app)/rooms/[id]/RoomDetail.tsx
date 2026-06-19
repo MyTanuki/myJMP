@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Modal, { Input } from "@/components/Modal";
+import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
 import { baht, thaiDate } from "@/lib/format";
 import {
@@ -184,8 +185,11 @@ function TenantTab({ data }: { data: RoomDetailData }) {
       <Section title="ผู้เช่า">
         <p className="text-slate-400 text-sm">
           ยังไม่มีผู้เช่าในห้องนี้ —{" "}
-          <Link href="/tenants" className="text-brand-700 hover:underline">
-            เพิ่มผู้เช่า
+          <Link
+            href={`/tenants?assign=${data.id}`}
+            className="text-brand-700 hover:underline"
+          >
+            เลือก/เพิ่มผู้เช่าเข้าห้องนี้
           </Link>
         </p>
       </Section>
@@ -427,16 +431,14 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
           <input type="hidden" name="roomId" value={data.id} />
           <Input label="ที่อยู่ผู้เข้าพัก" name="address" defaultValue={t.address ?? ""} />
           <div className="grid grid-cols-2 gap-3">
-            <Input
+            <DatePicker
               label="วันที่ทำสัญญา"
               name="contractStart"
-              type="date"
               defaultValue={t.contractStart ? t.contractStart.slice(0, 10) : ""}
             />
-            <Input
+            <DatePicker
               label="วันที่สิ้นสุดสัญญา"
               name="contractEnd"
-              type="date"
               defaultValue={t.contractEnd ? t.contractEnd.slice(0, 10) : ""}
             />
           </div>

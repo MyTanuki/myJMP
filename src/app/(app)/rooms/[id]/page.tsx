@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { allowedBuildings } from "@/lib/permissions";
 import { calcInvoice, overdueInfo } from "@/lib/format";
 import RoomDetail, { RoomDetailData } from "./RoomDetail";
 
@@ -27,6 +28,10 @@ export default async function RoomDetailPage({
     },
   });
   if (!room) notFound();
+
+  // กันเข้าถึงห้องในอาคารที่ไม่มีสิทธิ์
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
+  if (allowed && !allowed.includes(room.building)) notFound();
 
   const lateFeePerDay = user?.lateFeePerDay ?? 0;
   const t = room.tenants[0] ?? null;

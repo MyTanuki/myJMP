@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
+import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
 import { baht, thaiDate } from "@/lib/format";
 import {
@@ -143,6 +144,7 @@ export default function FinanceClient({
               <button
                 type="submit"
                 formAction={async (fd) => {
+                  if (!confirm("ลบรายการรายรับ-รายจ่ายนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                   await deleteTransaction(fd);
                   setEditing(null);
                 }}
@@ -205,10 +207,9 @@ function TxFields({ rooms, tx }: { rooms: RoomOption[]; tx?: TxRow }) {
       </Select>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input
+        <DatePicker
           label="วันที่"
           name="date"
-          type="date"
           defaultValue={tx ? toInput(tx.date) : new Date().toISOString().slice(0, 10)}
         />
         <Select label="ห้อง (ถ้ามี)" name="roomId" defaultValue={tx?.roomId ?? ""}>

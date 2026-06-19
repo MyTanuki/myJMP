@@ -37,26 +37,30 @@ for (const row of schema.rows) {
 }
 console.log(`Schema: ${schema.rows.length} objects created`);
 
-// 2) Data — copy every table's rows.
+// 2) Data — copy every table's rows in ONE transaction with foreign-key checks
+// deferred to commit time (Turso enforces FKs, and tables aren't in dependency
+// order, so a child row can land before its parent — defer fixes that).
 const tables = await local.execute(
   `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
 );
+const all = [{ sql: "PRAGMA defer_foreign_keys=ON" }];
+const counts = [];
 for (const t of tables.rows) {
   const table = String(t.name);
   const data = await local.execute(`SELECT * FROM "${table}"`);
-  if (data.rows.length === 0) {
-    console.log(`  ${table}: 0 rows`);
-    continue;
-  }
+  counts.push([table, data.rows.length]);
+  if (data.rows.length === 0) continue;
   const cols = data.columns;
   const colList = cols.map((c) => `"${c}"`).join(", ");
   const placeholders = cols.map(() => "?").join(", ");
-  const stmts = data.rows.map((r) => ({
-    sql: `INSERT OR REPLACE INTO "${table}" (${colList}) VALUES (${placeholders})`,
-    args: cols.map((c) => r[c]),
-  }));
-  await remote.batch(stmts, "write");
-  console.log(`  ${table}: ${data.rows.length} rows`);
+  for (const r of data.rows) {
+    all.push({
+      sql: `INSERT OR REPLACE INTO "${table}" (${colList}) VALUES (${placeholders})`,
+      args: cols.map((c) => r[c]),
+    });
+  }
 }
+await remote.batch(all, "write");
+for (const [table, n] of counts) console.log(`  ${table}: ${n} rows`);
 
 console.log("\nDone — Turso now mirrors your local database.");

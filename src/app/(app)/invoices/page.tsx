@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { allowedBuildings } from "@/lib/permissions";
 import { PageHeader, Card } from "@/components/ui";
 import {
   baht,
@@ -27,9 +28,11 @@ export default async function InvoicesPage({
   const period =
     sp.period && /^\d{4}-\d{2}$/.test(sp.period) ? sp.period : currentPeriod();
   const prevPeriod = shiftPeriod(period, -1);
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
 
   const [rooms, presets] = await Promise.all([
     db.room.findMany({
+      where: allowed ? { building: { in: allowed } } : {},
       orderBy: [
         { building: "asc" },
         { floor: "asc" },

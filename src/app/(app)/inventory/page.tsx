@@ -1,15 +1,25 @@
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import {
+  allowedBuildings,
+  buildingWhere,
+  roomBuildingWhereNullable,
+} from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
 import InventoryClient, { AssetRow } from "./InventoryClient";
 
 export default async function InventoryPage() {
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [assets, rooms] = await Promise.all([
     db.asset.findMany({
+      where: roomBuildingWhereNullable(allowed),
       orderBy: { createdAt: "desc" },
       include: { room: true },
     }),
     db.room.findMany({
+      where: buildingWhere(allowed),
       orderBy: [{ building: "asc" }, { floor: "asc" }, { number: "asc" }],
     }),
   ]);

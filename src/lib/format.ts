@@ -13,11 +13,10 @@ export function num(n: number): string {
 
 export function thaiDate(d: Date | string | null | undefined): string {
   if (!d) return "-";
-  return new Date(d).toLocaleDateString("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const dt = new Date(d);
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${dt.getFullYear()}`;
 }
 
 export function thaiMonth(period: string): string {

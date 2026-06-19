@@ -20,7 +20,7 @@ export async function createParcel(formData: FormData) {
     },
   });
 
-  revalidatePath("/parcels");
+  revalidatePath("/", "layout");
 }
 
 export async function togglePickup(formData: FormData) {
@@ -34,12 +34,12 @@ export async function togglePickup(formData: FormData) {
       pickedUpAt: pickedUp ? new Date() : null,
     },
   });
-  revalidatePath("/parcels");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteParcel(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.parcel.delete({ where: { id } });
-  revalidatePath("/parcels");
+  revalidatePath("/", "layout");
 }

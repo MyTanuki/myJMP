@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import { allowedBuildings } from "@/lib/permissions";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { currentPeriod, thaiMonth } from "@/lib/format";
 import MetersClient, { MeterLine } from "./MetersClient";
@@ -20,7 +22,11 @@ export default async function MetersPage({
     sp.period && /^\d{4}-\d{2}$/.test(sp.period) ? sp.period : currentPeriod();
   const prevPeriod = shiftPeriod(period, -1);
 
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
+
   const rooms = await db.room.findMany({
+    where: allowed ? { building: { in: allowed } } : {},
     orderBy: [
       { building: "asc" },
       { floor: "asc" },

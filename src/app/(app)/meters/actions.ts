@@ -50,7 +50,5 @@ export async function saveMeters(formData: FormData) {
     });
   }
 
-  revalidatePath("/meters");
-  revalidatePath("/invoices");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }

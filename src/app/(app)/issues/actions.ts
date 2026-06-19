@@ -21,7 +21,7 @@ export async function createIssue(formData: FormData) {
     },
   });
 
-  revalidatePath("/issues");
+  revalidatePath("/", "layout");
 }
 
 export async function updateIssue(formData: FormData) {
@@ -42,12 +42,12 @@ export async function updateIssue(formData: FormData) {
     },
   });
 
-  revalidatePath("/issues");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteIssue(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.issue.delete({ where: { id } });
-  revalidatePath("/issues");
+  revalidatePath("/", "layout");
 }

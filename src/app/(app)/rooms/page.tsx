@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
+import { allowedBuildings } from "@/lib/permissions";
 import { PageHeader, EmptyState, Card } from "@/components/ui";
 import { currentPeriod, monthlyRent } from "@/lib/format";
 import RoomsClient, { RoomRow, RoomStatus } from "./RoomsClient";
 
 export default async function RoomsPage() {
   const period = currentPeriod();
+  const user = await currentUser();
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
 
   const rooms = await db.room.findMany({
+    where: allowed ? { building: { in: allowed } } : {},
     orderBy: [
       { building: "asc" },
       { floor: "asc" },

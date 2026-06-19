@@ -28,7 +28,7 @@ export async function createBooking(formData: FormData) {
     },
   });
 
-  revalidatePath("/bookings");
+  revalidatePath("/", "layout");
 }
 
 export async function updateBooking(formData: FormData) {
@@ -48,12 +48,12 @@ export async function updateBooking(formData: FormData) {
     },
   });
 
-  revalidatePath("/bookings");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteBooking(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.booking.delete({ where: { id } });
-  revalidatePath("/bookings");
+  revalidatePath("/", "layout");
 }

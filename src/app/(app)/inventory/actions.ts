@@ -22,7 +22,7 @@ export async function createAsset(formData: FormData) {
     },
   });
 
-  revalidatePath("/inventory");
+  revalidatePath("/", "layout");
 }
 
 export async function updateAsset(formData: FormData) {
@@ -41,12 +41,12 @@ export async function updateAsset(formData: FormData) {
     },
   });
 
-  revalidatePath("/inventory");
+  revalidatePath("/", "layout");
 }
 
 export async function deleteAsset(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await db.asset.delete({ where: { id } });
-  revalidatePath("/inventory");
+  revalidatePath("/", "layout");
 }

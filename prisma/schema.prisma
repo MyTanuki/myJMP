@@ -14,6 +14,7 @@ model User {
   passwordHash String
   name         String
   role         String   @default("admin") // admin | manager | staff
+  buildingAccess String? // JSON array ของอาคารที่เข้าถึงได้ เช่น ["A","B"]; ว่าง = ทุกอาคาร
   dormName     String   @default("หอพักของฉัน")
   waterRate    Float    @default(18) // บาท/หน่วย
   elecRate     Float    @default(8) // บาท/หน่วย
@@ -194,7 +195,11 @@ model Tenant {
   phone         String?
   idCard        String?
   vehiclePlate  String? // ทะเบียนรถ
-  address       String? // ที่อยู่ผู้เข้าพัก (สำหรับสัญญา)
+  address       String? // ที่อยู่ผู้เข้าพัก (บ้านเลขที่/ถนน)
+  subdistrict   String? // ตำบล/แขวง
+  district      String? // อำเภอ/เขต
+  province      String? // จังหวัด
+  postalCode    String? // รหัสไปรษณีย์
   deposit       Float     @default(0)
   depositPaid   Boolean   @default(false) // จ่ายเงินประกันแล้วหรือยัง
   moveInWater   Float? // เลขมิเตอร์น้ำตอนเข้าพัก

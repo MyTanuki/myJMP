@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { allowedBuildings } from "@/lib/permissions";
 import {
   baht,
   calcInvoice,
@@ -24,6 +25,10 @@ export default async function InvoicePrintPage({
     include: { room: true, tenant: true, items: true },
   });
   if (!inv) notFound();
+
+  // กันพิมพ์บิลของห้องในอาคารที่ไม่มีสิทธิ์
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
+  if (allowed && !allowed.includes(inv.room.building)) notFound();
 
   const c = calcInvoice(inv);
   const od = overdueInfo(inv, user?.lateFeePerDay ?? 0);

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { allowedBuildings } from "@/lib/permissions";
 import { Card } from "@/components/ui";
 import {
   baht,
@@ -13,12 +14,20 @@ export default async function DashboardPage() {
   const user = await currentUser();
   const period = currentPeriod();
 
+  const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
+  const roomWhere = allowed ? { building: { in: allowed } } : {};
+  const byBuilding = allowed ? { room: { building: { in: allowed } } } : {};
+
   const [rooms, activeTenants, invoices] = await Promise.all([
     db.room.findMany({
+      where: roomWhere,
       include: { tenants: { where: { active: true }, take: 1 } },
     }),
-    db.tenant.count({ where: { active: true } }),
-    db.invoice.findMany({ where: { period }, include: { items: true } }),
+    db.tenant.count({ where: { active: true, ...byBuilding } }),
+    db.invoice.findMany({
+      where: { period, ...byBuilding },
+      include: { items: true },
+    }),
   ]);
 
   const totalRooms = rooms.length;

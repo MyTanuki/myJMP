@@ -34,7 +34,6 @@ export async function updateContract(formData: FormData) {
       ...(name ? { name } : {}),
       phone: str(formData.get("phone")),
       idCard: str(formData.get("idCard")),
-      address: str(formData.get("address")),
       contractStart: dateOrNull(formData.get("contractStart")),
       contractEnd: dateOrNull(formData.get("contractEnd")),
       moveInWater: numOrNull(formData.get("moveInWater")),

@@ -39,7 +39,17 @@ export default async function RoomDetailPage({
   // รายชื่อผู้เช่าทั้งหมด สำหรับ dropdown "เลือกข้อมูลจากผู้เช่า" ในฟอร์มสัญญา
   const allTenants = await db.tenant.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true, phone: true, idCard: true, address: true },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      idCard: true,
+      address: true,
+      subdistrict: true,
+      district: true,
+      province: true,
+      postalCode: true,
+    },
   });
 
   const data: RoomDetailData = {
@@ -58,6 +68,10 @@ export default async function RoomDetailPage({
           idCard: t.idCard,
           vehiclePlate: t.vehiclePlate,
           address: t.address,
+          subdistrict: t.subdistrict,
+          district: t.district,
+          province: t.province,
+          postalCode: t.postalCode,
           deposit: t.deposit,
           depositPaid: t.depositPaid,
           moveInWater: t.moveInWater,

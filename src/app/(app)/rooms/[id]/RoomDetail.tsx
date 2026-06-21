@@ -31,6 +31,10 @@ export type RoomDetailData = {
     idCard: string | null;
     vehiclePlate: string | null;
     address: string | null;
+    subdistrict: string | null;
+    district: string | null;
+    province: string | null;
+    postalCode: string | null;
     deposit: number;
     depositPaid: boolean;
     moveInWater: number | null;
@@ -88,6 +92,10 @@ export type RoomDetailData = {
     phone: string | null;
     idCard: string | null;
     address: string | null;
+    subdistrict: string | null;
+    district: string | null;
+    province: string | null;
+    postalCode: string | null;
   }[];
 };
 
@@ -475,6 +483,25 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
   );
 }
 
+// ประกอบที่อยู่เต็มจากรายละเอียดผู้เช่า (บ้านเลขที่ + ต. + อ. + จ. + รหัสไปรษณีย์)
+function fullAddress(p: {
+  address: string | null;
+  subdistrict: string | null;
+  district: string | null;
+  province: string | null;
+  postalCode: string | null;
+}) {
+  return [
+    p.address,
+    p.subdistrict && `ต.${p.subdistrict}`,
+    p.district && `อ.${p.district}`,
+    p.province && `จ.${p.province}`,
+    p.postalCode,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function ContractForm({
   t,
   tenants,
@@ -489,7 +516,7 @@ function ContractForm({
   const [name, setName] = useState(t.name);
   const [phone, setPhone] = useState(t.phone ?? "");
   const [idCard, setIdCard] = useState(t.idCard ?? "");
-  const [address, setAddress] = useState(t.address ?? "");
+  const [addr, setAddr] = useState(() => fullAddress(t));
 
   // เลือกผู้เช่าจากรายชื่อที่กรอกไว้ → เติมข้อมูลให้อัตโนมัติ (ไม่ต้องกรอกซ้ำ)
   const fill = (id: string) => {
@@ -498,7 +525,7 @@ function ContractForm({
     setName(sel.name);
     setPhone(sel.phone ?? "");
     setIdCard(sel.idCard ?? "");
-    setAddress(sel.address ?? "");
+    setAddr(fullAddress(sel));
   };
 
   return (
@@ -547,12 +574,17 @@ function ContractForm({
           onChange={(e) => setIdCard(e.target.value)}
         />
       </div>
-      <Input
-        label="ที่อยู่ผู้เข้าพัก"
-        name="address"
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-      />
+      <label className="block">
+        <span className="text-sm font-medium text-slate-600">
+          ที่อยู่ผู้เข้าพัก
+        </span>
+        <div className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-700 min-h-11">
+          {addr || "—"}
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          ดึงจากรายละเอียดผู้เช่า · แก้ไขที่อยู่ได้ที่หน้าผู้เช่า
+        </p>
+      </label>
       <div className="grid grid-cols-2 gap-3">
         <DatePicker
           label="วันที่ทำสัญญา"

@@ -33,6 +33,7 @@ const NAV: NavItem[] = [
     children: [
       { href: "/settings", label: "ตั้งค่าทั่วไป", icon: "🔧" },
       { href: "/settings/rooms", label: "จัดการห้องพัก", icon: "🏗️" },
+      { href: "/settings/contract", label: "เทมเพลตสัญญา", icon: "📑" },
       { href: "/staff", label: "พนักงาน", icon: "🧑‍💼" },
       { href: "/subscription", label: "แพ็กเกจ", icon: "💎" },
     ],

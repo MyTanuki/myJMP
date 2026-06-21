@@ -44,6 +44,15 @@ model ServicePreset {
   createdAt DateTime @default(now())
 }
 
+// เทมเพลตสัญญาเช่า — เนื้อหามี merge field เช่น {{tenantName}} {{roomNumber}}
+model ContractTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  body      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model Room {
   id        String   @id @default(cuid())
   building  String   @default("A") // อาคาร

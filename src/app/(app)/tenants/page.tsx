@@ -53,7 +53,7 @@ export default async function TenantsPage({
     contractEnd: t.contractEnd?.toISOString() ?? null,
     active: t.active,
     roomId: t.roomId,
-    roomNumber: roomLabel(t.room.building, t.room.number),
+    roomNumber: t.room ? roomLabel(t.room.building, t.room.number) : null,
   }));
 
   const roomOptions: RoomOption[] = rooms.map((r) => ({

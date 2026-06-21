@@ -14,14 +14,16 @@ export async function createTenant(formData: FormData) {
   if (!user) return;
 
   const name = String(formData.get("name") ?? "").trim();
-  const roomId = String(formData.get("roomId") ?? "");
-  if (!name || !roomId) return;
+  const roomId = String(formData.get("roomId") ?? "").trim() || null;
+  if (!name) return;
 
-  // ห้องหนึ่งมีผู้เช่าที่ใช้งานได้คนเดียว — ย้ายคนเดิมออกก่อน (ไม่มีผลถ้าห้องว่าง)
-  await db.tenant.updateMany({
-    where: { roomId, active: true },
-    data: { active: false },
-  });
+  // ห้องหนึ่งมีผู้เช่าที่ใช้งานได้คนเดียว — ย้ายคนเดิมออกก่อน (เฉพาะเมื่อกำหนดห้อง)
+  if (roomId) {
+    await db.tenant.updateMany({
+      where: { roomId, active: true },
+      data: { active: false },
+    });
+  }
 
   await db.tenant.create({
     data: {
@@ -54,7 +56,7 @@ export async function updateTenant(formData: FormData) {
     where: { id },
     data: {
       name: String(formData.get("name") ?? "").trim(),
-      roomId: String(formData.get("roomId") ?? ""),
+      roomId: String(formData.get("roomId") ?? "").trim() || null,
       phone: String(formData.get("phone") ?? "").trim() || null,
       idCard: String(formData.get("idCard") ?? "").trim() || null,
       vehiclePlate: String(formData.get("vehiclePlate") ?? "").trim() || null,

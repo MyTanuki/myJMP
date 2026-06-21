@@ -211,8 +211,8 @@ model Tenant {
   active        Boolean   @default(true) // ยังพักอยู่ไหม
   createdAt     DateTime  @default(now())
 
-  roomId      String
-  room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId      String?
+  room        Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
   invoices    Invoice[]
   vehicles    Vehicle[]
   moveInItems MoveInItem[]

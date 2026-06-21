@@ -32,8 +32,8 @@ export type TenantRow = {
   contractStart: string | null;
   contractEnd: string | null;
   active: boolean;
-  roomId: string;
-  roomNumber: string;
+  roomId: string | null;
+  roomNumber: string | null;
 };
 
 export type RoomOption = { id: string; number: string };
@@ -153,7 +153,7 @@ export default function TenantsClient({
                 )}
               </div>
               <div className="text-sm text-slate-400 truncate">
-                ห้อง {t.roomNumber}
+                {t.roomNumber ? `ห้อง ${t.roomNumber}` : "ยังไม่กำหนดห้อง"}
                 {t.phone ? ` · ${t.phone}` : ""}
               </div>
             </div>
@@ -328,8 +328,8 @@ function TenantFields({
           <input type="hidden" name="roomId" value={lockRoom.id} />
         </div>
       ) : (
-        <Select label="ห้อง" name="roomId" defaultValue={tenant?.roomId} required>
-          <option value="">— เลือกห้อง —</option>
+        <Select label="ห้อง" name="roomId" defaultValue={tenant?.roomId ?? ""}>
+          <option value="">— ยังไม่กำหนดห้อง —</option>
           {rooms.map((r) => (
             <option key={r.id} value={r.id}>
               ห้อง {r.number}

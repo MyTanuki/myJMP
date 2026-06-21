@@ -7,14 +7,21 @@ import {
 } from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
+import BackToRoom from "@/components/BackToRoom";
 import BookingsClient, { BookingRow } from "./BookingsClient";
 
-export default async function BookingsPage() {
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ room?: string }>;
+}) {
+  const sp = await searchParams;
+  const roomId = sp.room;
   const user = await currentUser();
   const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [bookings, rooms] = await Promise.all([
     db.booking.findMany({
-      where: roomBuildingWhereNullable(allowed),
+      where: roomId ? { roomId } : roomBuildingWhereNullable(allowed),
       orderBy: { date: "desc" },
       include: { room: true },
     }),
@@ -38,8 +45,16 @@ export default async function BookingsPage() {
 
   const pending = rows.filter((r) => r.status === "pending").length;
 
+  const backRoom = roomId ? rooms.find((r) => r.id === roomId) : undefined;
+
   return (
     <>
+      {backRoom && (
+        <BackToRoom
+          id={backRoom.id}
+          label={roomLabel(backRoom.building, backRoom.number)}
+        />
+      )}
       <PageHeader
         title="การจอง"
         subtitle={`รอยืนยัน ${pending} · ทั้งหมด ${rows.length} รายการ`}

@@ -227,7 +227,7 @@ function TenantTab({ data }: { data: RoomDetailData }) {
               .join(" · ")}
           </div>
           <Link
-            href="/tenants"
+            href={`/tenants?room=${data.id}`}
             className="inline-block mt-2 text-sm text-brand-700 hover:underline"
           >
             🔍 ดูข้อมูลผู้เช่า
@@ -513,7 +513,10 @@ function PaymentTab({ data }: { data: RoomDetailData }) {
       <Section title="ชำระเงิน">
         <p className="text-slate-400 text-sm">
           ยังไม่มีบิลสำหรับห้องนี้ —{" "}
-          <Link href="/invoices" className="text-brand-700 hover:underline">
+          <Link
+            href={`/invoices?room=${data.id}`}
+            className="text-brand-700 hover:underline"
+          >
             ไปหน้าออกบิล
           </Link>
         </p>
@@ -621,7 +624,7 @@ function PaymentTab({ data }: { data: RoomDetailData }) {
               พิมพ์
             </Link>
             <Link
-              href={`/invoices?period=${inv.period}`}
+              href={`/invoices?room=${data.id}&period=${inv.period}`}
               className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition"
             >
               แก้ไขบิล
@@ -657,7 +660,7 @@ function AssetsTab({ data }: { data: RoomDetailData }) {
     <Section
       title="รายการทรัพย์สินในห้อง"
       right={
-        <Link href="/inventory" className="text-sm text-brand-700 hover:underline">
+        <Link href={`/inventory?room=${data.id}`} className="text-sm text-brand-700 hover:underline">
           จัดการทรัพย์สิน
         </Link>
       }
@@ -726,7 +729,7 @@ function IssuesTab({ data }: { data: RoomDetailData }) {
     <Section
       title="การแจ้งซ่อม / ปัญหา"
       right={
-        <Link href="/issues" className="text-sm text-brand-700 hover:underline">
+        <Link href={`/issues?room=${data.id}`} className="text-sm text-brand-700 hover:underline">
           จัดการแจ้งซ่อม
         </Link>
       }
@@ -766,7 +769,7 @@ function BookingsTab({ data }: { data: RoomDetailData }) {
     <Section
       title="การจองห้องนี้"
       right={
-        <Link href="/bookings" className="text-sm text-brand-700 hover:underline">
+        <Link href={`/bookings?room=${data.id}`} className="text-sm text-brand-700 hover:underline">
           จัดการการจอง
         </Link>
       }

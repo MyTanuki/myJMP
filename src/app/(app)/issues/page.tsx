@@ -7,14 +7,21 @@ import {
 } from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
+import BackToRoom from "@/components/BackToRoom";
 import IssuesClient, { IssueRow } from "./IssuesClient";
 
-export default async function IssuesPage() {
+export default async function IssuesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ room?: string }>;
+}) {
+  const sp = await searchParams;
+  const roomId = sp.room;
   const user = await currentUser();
   const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [issues, rooms] = await Promise.all([
     db.issue.findMany({
-      where: roomBuildingWhereNullable(allowed),
+      where: roomId ? { roomId } : roomBuildingWhereNullable(allowed),
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
       include: { room: true },
     }),
@@ -38,8 +45,16 @@ export default async function IssuesPage() {
 
   const openCount = rows.filter((r) => r.status !== "done").length;
 
+  const backRoom = roomId ? rooms.find((r) => r.id === roomId) : undefined;
+
   return (
     <>
+      {backRoom && (
+        <BackToRoom
+          id={backRoom.id}
+          label={roomLabel(backRoom.building, backRoom.number)}
+        />
+      )}
       <PageHeader
         title="แจ้งซ่อม"
         subtitle={`ค้างอยู่ ${openCount} รายการ · ทั้งหมด ${rows.length} รายการ`}

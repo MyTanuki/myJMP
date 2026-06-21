@@ -7,14 +7,21 @@ import {
 } from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
+import BackToRoom from "@/components/BackToRoom";
 import InventoryClient, { AssetRow } from "./InventoryClient";
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ room?: string }>;
+}) {
+  const sp = await searchParams;
+  const roomId = sp.room;
   const user = await currentUser();
   const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [assets, rooms] = await Promise.all([
     db.asset.findMany({
-      where: roomBuildingWhereNullable(allowed),
+      where: roomId ? { roomId } : roomBuildingWhereNullable(allowed),
       orderBy: { createdAt: "desc" },
       include: { room: true },
     }),
@@ -37,8 +44,16 @@ export default async function InventoryPage() {
 
   const broken = rows.filter((r) => r.condition === "broken").length;
 
+  const backRoom = roomId ? rooms.find((r) => r.id === roomId) : undefined;
+
   return (
     <>
+      {backRoom && (
+        <BackToRoom
+          id={backRoom.id}
+          label={roomLabel(backRoom.building, backRoom.number)}
+        />
+      )}
       <PageHeader
         title="ทรัพย์สิน"
         subtitle={`ทั้งหมด ${rows.length} รายการ${broken ? ` · ชำรุด ${broken}` : ""}`}

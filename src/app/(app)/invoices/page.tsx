@@ -3,11 +3,13 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { allowedBuildings } from "@/lib/permissions";
 import { PageHeader, Card } from "@/components/ui";
+import BackToRoom from "@/components/BackToRoom";
 import {
   baht,
   calcInvoice,
   currentPeriod,
   monthlyRent,
+  roomLabel,
   thaiMonth,
 } from "@/lib/format";
 import InvoicesClient, { RoomLine, InvoiceData } from "./InvoicesClient";
@@ -21,10 +23,11 @@ function shiftPeriod(period: string, delta: number) {
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; room?: string }>;
 }) {
   const user = await currentUser();
   const sp = await searchParams;
+  const roomId = sp.room;
   const period =
     sp.period && /^\d{4}-\d{2}$/.test(sp.period) ? sp.period : currentPeriod();
   const prevPeriod = shiftPeriod(period, -1);
@@ -32,7 +35,11 @@ export default async function InvoicesPage({
 
   const [rooms, presets] = await Promise.all([
     db.room.findMany({
-      where: allowed ? { building: { in: allowed } } : {},
+      where: roomId
+        ? { id: roomId }
+        : allowed
+          ? { building: { in: allowed } }
+          : {},
       orderBy: [
         { building: "asc" },
         { floor: "asc" },
@@ -104,14 +111,22 @@ export default async function InvoicesPage({
     .filter((l) => l.invoice!.status === "paid")
     .reduce((s, l) => s + calcInvoice(l.invoice!).total, 0);
   const outstanding = totalBilled - collected;
+  const roomQ = roomId ? `room=${roomId}&` : "";
+  const backRoom = roomId ? rooms.find((r) => r.id === roomId) : undefined;
 
   return (
     <>
+      {backRoom && (
+        <BackToRoom
+          id={backRoom.id}
+          label={roomLabel(backRoom.building, backRoom.number)}
+        />
+      )}
       <PageHeader title="บิล" subtitle="ออกบิลรายเดือน (จดมิเตอร์ที่เมนู จดมิเตอร์)" />
 
       <div className="flex items-center justify-center gap-4 mb-6">
         <Link
-          href={`/invoices?period=${shiftPeriod(period, -1)}`}
+          href={`/invoices?${roomQ}period=${shiftPeriod(period, -1)}`}
           className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
         >
           ←
@@ -120,7 +135,7 @@ export default async function InvoicesPage({
           {thaiMonth(period)}
         </div>
         <Link
-          href={`/invoices?period=${shiftPeriod(period, 1)}`}
+          href={`/invoices?${roomQ}period=${shiftPeriod(period, 1)}`}
           className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
         >
           →

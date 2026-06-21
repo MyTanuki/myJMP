@@ -7,19 +7,21 @@ import {
 } from "@/lib/permissions";
 import { roomLabel } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui";
+import BackToRoom from "@/components/BackToRoom";
 import TenantsClient, { TenantRow, RoomOption } from "./TenantsClient";
 
 export default async function TenantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ assign?: string }>;
+  searchParams: Promise<{ assign?: string; room?: string }>;
 }) {
   const sp = await searchParams;
+  const roomId = sp.room;
   const user = await currentUser();
   const allowed = allowedBuildings(user?.role ?? "staff", user?.buildingAccess);
   const [tenants, rooms] = await Promise.all([
     db.tenant.findMany({
-      where: roomBuildingWhere(allowed),
+      where: roomId ? { roomId } : roomBuildingWhere(allowed),
       orderBy: [
         { active: "desc" },
         { room: { building: "asc" } },
@@ -62,11 +64,18 @@ export default async function TenantsPage({
   const assign = sp.assign
     ? roomOptions.find((r) => r.id === sp.assign)
     : undefined;
+  const backRoom = roomId ? rooms.find((r) => r.id === roomId) : undefined;
 
   const activeCount = rows.filter((r) => r.active).length;
 
   return (
     <>
+      {backRoom && (
+        <BackToRoom
+          id={backRoom.id}
+          label={roomLabel(backRoom.building, backRoom.number)}
+        />
+      )}
       <PageHeader
         title="ผู้เช่า"
         subtitle={`พักอยู่ ${activeCount} คน · ทั้งหมด ${rows.length} ราย`}

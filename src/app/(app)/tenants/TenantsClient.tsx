@@ -210,7 +210,7 @@ export default function TenantsClient({
               </button>
               {editing.active && (
                 <button
-                  type="button"
+                  type="submit"
                   formAction={async (fd) => {
                     await moveOut(fd);
                     setEditing(null);
@@ -221,7 +221,7 @@ export default function TenantsClient({
                 </button>
               )}
               <button
-                type="button"
+                type="submit"
                 formAction={async (fd) => {
                   if (!confirm("ลบผู้เช่ารายนี้?\nข้อมูลทั้งหมดจะถูกลบถาวร")) return;
                   await deleteTenant(fd);

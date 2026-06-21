@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Modal, { Input } from "@/components/Modal";
+import Modal, { Input, Select } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
 import { baht, thaiDate, thaiMonth, calcInvoice } from "@/lib/format";
@@ -81,6 +81,13 @@ export type RoomDetailData = {
     status: string;
     date: string;
     deposit: number;
+  }[];
+  tenantOptions: {
+    id: string;
+    name: string;
+    phone: string | null;
+    idCard: string | null;
+    address: string | null;
   }[];
 };
 
@@ -457,49 +464,130 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
         onClose={() => setEditing(false)}
         title="แก้ไขข้อมูลสัญญา"
       >
-        <form
-          action={async (fd) => {
-            await updateContract(fd);
-            setEditing(false);
-          }}
-          className="space-y-4"
-        >
-          <input type="hidden" name="tenantId" value={t.id} />
-          <input type="hidden" name="roomId" value={data.id} />
-          <Input label="ที่อยู่ผู้เข้าพัก" name="address" defaultValue={t.address ?? ""} />
-          <div className="grid grid-cols-2 gap-3">
-            <DatePicker
-              label="วันที่ทำสัญญา"
-              name="contractStart"
-              defaultValue={t.contractStart ? t.contractStart.slice(0, 10) : ""}
-            />
-            <DatePicker
-              label="วันที่สิ้นสุดสัญญา"
-              name="contractEnd"
-              defaultValue={t.contractEnd ? t.contractEnd.slice(0, 10) : ""}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="เลขมิเตอร์น้ำ (เข้าพัก)"
-              name="moveInWater"
-              type="number"
-              defaultValue={t.moveInWater ?? ""}
-            />
-            <Input
-              label="เลขมิเตอร์ไฟ (เข้าพัก)"
-              name="moveInElec"
-              type="number"
-              defaultValue={t.moveInElec ?? ""}
-            />
-          </div>
-          <Input label="หมายเหตุ" name="contractNote" defaultValue={t.contractNote ?? ""} />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
-            บันทึก
-          </button>
-        </form>
+        <ContractForm
+          t={t}
+          tenants={data.tenantOptions}
+          roomId={data.id}
+          onDone={() => setEditing(false)}
+        />
       </Modal>
     </>
+  );
+}
+
+function ContractForm({
+  t,
+  tenants,
+  roomId,
+  onDone,
+}: {
+  t: NonNullable<RoomDetailData["tenant"]>;
+  tenants: RoomDetailData["tenantOptions"];
+  roomId: string;
+  onDone: () => void;
+}) {
+  const [name, setName] = useState(t.name);
+  const [phone, setPhone] = useState(t.phone ?? "");
+  const [idCard, setIdCard] = useState(t.idCard ?? "");
+  const [address, setAddress] = useState(t.address ?? "");
+
+  // เลือกผู้เช่าจากรายชื่อที่กรอกไว้ → เติมข้อมูลให้อัตโนมัติ (ไม่ต้องกรอกซ้ำ)
+  const fill = (id: string) => {
+    const sel = tenants.find((x) => x.id === id);
+    if (!sel) return;
+    setName(sel.name);
+    setPhone(sel.phone ?? "");
+    setIdCard(sel.idCard ?? "");
+    setAddress(sel.address ?? "");
+  };
+
+  return (
+    <form
+      action={async (fd) => {
+        await updateContract(fd);
+        onDone();
+      }}
+      className="space-y-4"
+    >
+      <input type="hidden" name="tenantId" value={t.id} />
+      <input type="hidden" name="roomId" value={roomId} />
+
+      <Select
+        label="เลือกข้อมูลจากผู้เช่า"
+        defaultValue=""
+        onChange={(e) => fill(e.target.value)}
+      >
+        <option value="">— เลือกข้อมูลจากผู้เช่า —</option>
+        {tenants.map((x) => (
+          <option key={x.id} value={x.id}>
+            {x.name}
+            {x.phone ? ` · ${x.phone}` : ""}
+          </option>
+        ))}
+      </Select>
+
+      <Input
+        label="ชื่อผู้เข้าพัก"
+        name="name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        required
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="เบอร์โทรผู้เข้าพัก"
+          name="phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+        <Input
+          label="หมายเลขบัตรประชาชน"
+          name="idCard"
+          value={idCard}
+          onChange={(e) => setIdCard(e.target.value)}
+        />
+      </div>
+      <Input
+        label="ที่อยู่ผู้เข้าพัก"
+        name="address"
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <DatePicker
+          label="วันที่ทำสัญญา"
+          name="contractStart"
+          defaultValue={t.contractStart ? t.contractStart.slice(0, 10) : ""}
+        />
+        <DatePicker
+          label="วันที่สิ้นสุดสัญญา"
+          name="contractEnd"
+          defaultValue={t.contractEnd ? t.contractEnd.slice(0, 10) : ""}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="เลขมิเตอร์น้ำ (เข้าพัก)"
+          name="moveInWater"
+          type="number"
+          defaultValue={t.moveInWater ?? ""}
+        />
+        <Input
+          label="เลขมิเตอร์ไฟ (เข้าพัก)"
+          name="moveInElec"
+          type="number"
+          defaultValue={t.moveInElec ?? ""}
+        />
+      </div>
+      <Input
+        label="หมายเหตุ"
+        name="contractNote"
+        defaultValue={t.contractNote ?? ""}
+      />
+      <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+        บันทึก
+      </button>
+    </form>
   );
 }
 

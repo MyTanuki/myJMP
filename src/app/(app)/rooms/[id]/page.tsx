@@ -36,6 +36,12 @@ export default async function RoomDetailPage({
   const lateFeePerDay = user?.lateFeePerDay ?? 0;
   const t = room.tenants[0] ?? null;
 
+  // รายชื่อผู้เช่าทั้งหมด สำหรับ dropdown "เลือกข้อมูลจากผู้เช่า" ในฟอร์มสัญญา
+  const allTenants = await db.tenant.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, phone: true, idCard: true, address: true },
+  });
+
   const data: RoomDetailData = {
     id: room.id,
     building: room.building,
@@ -112,6 +118,7 @@ export default async function RoomDetailPage({
       deposit: b.deposit,
     })),
     dormName: user?.dormName ?? "",
+    tenantOptions: allTenants,
   };
 
   return <RoomDetail data={data} />;

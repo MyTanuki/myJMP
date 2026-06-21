@@ -5,9 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { searchAddressByDistrict, type ThaiAddress } from "thai-address-database";
 import Modal, { Input, Select } from "@/components/Modal";
-import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
-import { baht, thaiDate } from "@/lib/format";
+import { thaiDate } from "@/lib/format";
 import {
   createTenant,
   updateTenant,
@@ -37,34 +36,6 @@ export type TenantRow = {
 };
 
 export type RoomOption = { id: string; number: string };
-
-function toInput(d: string | null) {
-  return d ? new Date(d).toISOString().slice(0, 10) : "";
-}
-
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-// บวกจำนวนเดือน (clamp วันให้อยู่ในเดือนปลายทาง เช่น 31 ม.ค. + 1 เดือน = 28/29 ก.พ.)
-function addMonths(iso: string, months: number): string {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map(Number);
-  const base = new Date(y, m - 1 + months, 1);
-  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
-  const day = Math.min(d, lastDay);
-  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function monthsBetween(a: string, b: string): number {
-  if (!a || !b) return 6;
-  const [ay, am, ad] = a.split("-").map(Number);
-  const [by, bm, bd] = b.split("-").map(Number);
-  let m = (by - ay) * 12 + (bm - am);
-  if (bd < ad) m -= 1;
-  return m > 0 ? m : 6;
-}
 
 export default function TenantsClient({
   tenants,
@@ -250,35 +221,6 @@ function TenantFields({
   tenant?: TenantRow;
   lockRoom?: { id: string; label: string };
 }) {
-  const seedMoveIn = tenant ? toInput(tenant.moveInDate) : todayIso();
-  const seedStart = tenant?.contractStart ? toInput(tenant.contractStart) : seedMoveIn;
-  const seedEnd = tenant?.contractEnd
-    ? toInput(tenant.contractEnd)
-    : addMonths(seedMoveIn, 6);
-
-  const [moveIn, setMoveIn] = useState(seedMoveIn);
-  const [months, setMonths] = useState(
-    tenant?.contractStart && tenant?.contractEnd
-      ? monthsBetween(toInput(tenant.contractStart), toInput(tenant.contractEnd))
-      : 6
-  );
-  const [start, setStart] = useState(seedStart);
-  const [end, setEnd] = useState(seedEnd);
-
-  const onMoveIn = (v: string) => {
-    setMoveIn(v);
-    setStart(v); // สัญญาเริ่มตามวันเข้าพัก
-    setEnd(addMonths(v, months)); // สัญญาสิ้นสุด = วันเข้าพัก + ระยะสัญญา
-  };
-  const onMonths = (n: number) => {
-    setMonths(n);
-    setEnd(addMonths(start || moveIn, n));
-  };
-  const onStart = (v: string) => {
-    setStart(v);
-    setEnd(addMonths(v, months));
-  };
-
   // ที่อยู่ + autocomplete จากตำบล
   const [address, setAddress] = useState(tenant?.address ?? "");
   const [subdistrict, setSubdistrict] = useState(tenant?.subdistrict ?? "");
@@ -327,8 +269,8 @@ function TenantFields({
           </div>
           <input type="hidden" name="roomId" value={lockRoom.id} />
         </div>
-      ) : (
-        <Select label="ห้อง" name="roomId" defaultValue={tenant?.roomId ?? ""}>
+      ) : tenant ? (
+        <Select label="ห้อง" name="roomId" defaultValue={tenant.roomId ?? ""}>
           <option value="">— ยังไม่กำหนดห้อง —</option>
           {rooms.map((r) => (
             <option key={r.id} value={r.id}>
@@ -336,7 +278,7 @@ function TenantFields({
             </option>
           ))}
         </Select>
-      )}
+      ) : null}
 
       {/* ที่อยู่ */}
       <div className="rounded-xl bg-slate-50 p-3 space-y-3">
@@ -396,33 +338,6 @@ function TenantFields({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <DatePicker label="วันเข้าพัก" name="moveInDate" value={moveIn} onChange={onMoveIn} />
-        <Input
-          label="ระยะสัญญา (เดือน)"
-          name="contractMonths"
-          type="number"
-          min={1}
-          value={months}
-          onChange={(e) => onMonths(Number(e.target.value) || 0)}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <DatePicker label="สัญญาเริ่ม" name="contractStart" value={start} onChange={onStart} />
-        <DatePicker label="สัญญาสิ้นสุด" name="contractEnd" value={end} onChange={setEnd} />
-      </div>
-      <Input
-        label="เงินมัดจำ (บาท)"
-        name="deposit"
-        type="number"
-        min={0}
-        defaultValue={tenant?.deposit ?? 0}
-      />
-      {tenant && (
-        <p className="text-xs text-slate-400">
-          มัดจำปัจจุบัน: {baht(tenant.deposit)}
-        </p>
-      )}
     </>
   );
 }

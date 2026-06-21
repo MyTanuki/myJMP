@@ -74,6 +74,7 @@ export default async function RoomDetailPage({
           postalCode: t.postalCode,
           deposit: t.deposit,
           depositPaid: t.depositPaid,
+          moveInDate: t.moveInDate.toISOString(),
           moveInWater: t.moveInWater,
           moveInElec: t.moveInElec,
           contractNote: t.contractNote,

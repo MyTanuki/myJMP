@@ -65,10 +65,6 @@ export async function updateTenant(formData: FormData) {
       district: String(formData.get("district") ?? "").trim() || null,
       province: String(formData.get("province") ?? "").trim() || null,
       postalCode: String(formData.get("postalCode") ?? "").trim() || null,
-      deposit: Number(formData.get("deposit") ?? 0) || 0,
-      moveInDate: dateOrNull(formData.get("moveInDate")) ?? new Date(),
-      contractStart: dateOrNull(formData.get("contractStart")),
-      contractEnd: dateOrNull(formData.get("contractEnd")),
     },
   });
 

@@ -27,13 +27,16 @@ export async function updateContract(formData: FormData) {
   if (!tenantId) return;
 
   const name = String(formData.get("name") ?? "").trim();
+  const moveInDate = dateOrNull(formData.get("moveInDate"));
 
   await db.tenant.update({
     where: { id: tenantId },
     data: {
       ...(name ? { name } : {}),
+      ...(moveInDate ? { moveInDate } : {}),
       phone: str(formData.get("phone")),
       idCard: str(formData.get("idCard")),
+      deposit: Number(formData.get("deposit") ?? 0) || 0,
       contractStart: dateOrNull(formData.get("contractStart")),
       contractEnd: dateOrNull(formData.get("contractEnd")),
       moveInWater: numOrNull(formData.get("moveInWater")),

@@ -37,6 +37,7 @@ export type RoomDetailData = {
     postalCode: string | null;
     deposit: number;
     depositPaid: boolean;
+    moveInDate: string;
     moveInWater: number | null;
     moveInElec: number | null;
     contractNote: string | null;
@@ -119,6 +120,16 @@ function monthsBetween(a: string | null, b: string | null): number | null {
     0,
     (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth())
   );
+}
+
+// บวกจำนวนเดือน (clamp วันให้อยู่ในเดือนปลายทาง เช่น 31 ม.ค. + 1 เดือน = 28/29 ก.พ.)
+function addMonths(iso: string, months: number): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const base = new Date(y, m - 1 + months, 1);
+  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  const day = Math.min(d, lastDay);
+  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export default function RoomDetail({ data }: { data: RoomDetailData }) {
@@ -518,6 +529,34 @@ function ContractForm({
   const [idCard, setIdCard] = useState(t.idCard ?? "");
   const [addr, setAddr] = useState(() => fullAddress(t));
 
+  // ข้อมูลสัญญา (ย้ายมาจากฟอร์มเพิ่มผู้เช่า) — วันเข้าพัก → สัญญาเริ่ม/สิ้นสุด อัตโนมัติ
+  const seedMoveIn = t.moveInDate.slice(0, 10);
+  const [moveIn, setMoveIn] = useState(seedMoveIn);
+  const [months, setMonths] = useState(
+    monthsBetween(t.contractStart, t.contractEnd) ?? 6
+  );
+  const [start, setStart] = useState(
+    t.contractStart ? t.contractStart.slice(0, 10) : seedMoveIn
+  );
+  const [end, setEnd] = useState(
+    t.contractEnd ? t.contractEnd.slice(0, 10) : addMonths(seedMoveIn, 6)
+  );
+  const [deposit, setDeposit] = useState(t.deposit);
+
+  const onMoveIn = (v: string) => {
+    setMoveIn(v);
+    setStart(v);
+    setEnd(addMonths(v, months));
+  };
+  const onMonths = (n: number) => {
+    setMonths(n);
+    setEnd(addMonths(start || moveIn, n));
+  };
+  const onStart = (v: string) => {
+    setStart(v);
+    setEnd(addMonths(v, months));
+  };
+
   // เลือกผู้เช่าจากรายชื่อที่กรอกไว้ → เติมข้อมูลให้อัตโนมัติ (ไม่ต้องกรอกซ้ำ)
   const fill = (id: string) => {
     const sel = tenants.find((x) => x.id === id);
@@ -586,17 +625,28 @@ function ContractForm({
         </p>
       </label>
       <div className="grid grid-cols-2 gap-3">
-        <DatePicker
-          label="วันที่ทำสัญญา"
-          name="contractStart"
-          defaultValue={t.contractStart ? t.contractStart.slice(0, 10) : ""}
-        />
-        <DatePicker
-          label="วันที่สิ้นสุดสัญญา"
-          name="contractEnd"
-          defaultValue={t.contractEnd ? t.contractEnd.slice(0, 10) : ""}
+        <DatePicker label="วันเข้าพัก" name="moveInDate" value={moveIn} onChange={onMoveIn} />
+        <Input
+          label="ระยะสัญญา (เดือน)"
+          name="contractMonths"
+          type="number"
+          min={1}
+          value={months}
+          onChange={(e) => onMonths(Number(e.target.value) || 0)}
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <DatePicker label="วันที่ทำสัญญา" name="contractStart" value={start} onChange={onStart} />
+        <DatePicker label="วันที่สิ้นสุดสัญญา" name="contractEnd" value={end} onChange={setEnd} />
+      </div>
+      <Input
+        label="เงินมัดจำ (บาท)"
+        name="deposit"
+        type="number"
+        min={0}
+        value={deposit}
+        onChange={(e) => setDeposit(Number(e.target.value) || 0)}
+      />
       <div className="grid grid-cols-2 gap-3">
         <Input
           label="เลขมิเตอร์น้ำ (เข้าพัก)"

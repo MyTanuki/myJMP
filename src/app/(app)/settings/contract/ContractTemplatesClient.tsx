@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Modal, { Input, Textarea } from "@/components/Modal";
+import Modal, { Input } from "@/components/Modal";
 import SaveButton from "@/components/SaveButton";
+import RichTextEditor from "@/components/RichTextEditor";
 import { Badge } from "@/components/ui";
 import { createTemplate, updateTemplate, deleteTemplate } from "./actions";
 
@@ -12,21 +13,6 @@ export type TemplateRow = {
   body: string;
   isDefault: boolean;
 };
-
-// ตัวแปรที่ใช้ในเนื้อหาสัญญา (จะถูกแทนค่าตอนพิมพ์สัญญา — ฟีเจอร์พิมพ์ทำในขั้นถัดไป)
-const FIELDS = [
-  "{{tenantName}}",
-  "{{tenantPhone}}",
-  "{{tenantIdCard}}",
-  "{{tenantAddress}}",
-  "{{roomNumber}}",
-  "{{rent}}",
-  "{{deposit}}",
-  "{{contractStart}}",
-  "{{contractEnd}}",
-  "{{dormName}}",
-  "{{today}}",
-];
 
 export default function ContractTemplatesClient({
   templates,
@@ -61,7 +47,7 @@ export default function ContractTemplatesClient({
                 {t.isDefault && <Badge tone="green">ค่าเริ่มต้น</Badge>}
               </div>
               <div className="text-sm text-slate-400 truncate">
-                {t.body.replace(/\s+/g, " ").trim().slice(0, 90) || "—"}
+                {t.body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 90) || "—"}
               </div>
             </div>
           </button>
@@ -97,7 +83,7 @@ export default function ContractTemplatesClient({
             className="space-y-4"
           >
             <input type="hidden" name="id" value={editing.id} />
-            <TemplateFields tpl={editing} />
+            <TemplateFields key={editing.id} tpl={editing} />
             <div className="flex items-center gap-2">
               <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl">
                 บันทึก
@@ -125,25 +111,11 @@ function TemplateFields({ tpl }: { tpl?: TemplateRow }) {
   return (
     <>
       <Input label="ชื่อเทมเพลต" name="name" defaultValue={tpl?.name} required />
-      <Textarea
-        label="เนื้อหาสัญญา"
-        name="body"
-        defaultValue={tpl?.body ?? ""}
-        rows={10}
-        placeholder="พิมพ์เนื้อหาสัญญา ใช้ตัวแปร เช่น {{tenantName}} เช่าห้อง {{roomNumber}} ค่าเช่า {{rent}} บาท…"
-      />
-      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
-        <div className="font-medium text-slate-600 mb-1.5">ตัวแปรที่ใช้ได้ (merge field)</div>
-        <div className="flex flex-wrap gap-1.5">
-          {FIELDS.map((f) => (
-            <code
-              key={f}
-              className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600"
-            >
-              {f}
-            </code>
-          ))}
-        </div>
+      <div>
+        <span className="block text-sm font-medium text-slate-600 mb-1.5">
+          เนื้อหาสัญญา
+        </span>
+        <RichTextEditor name="body" defaultValue={tpl?.body ?? ""} />
       </div>
       <label className="flex items-center gap-2 text-sm text-slate-600">
         <input

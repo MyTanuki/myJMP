@@ -62,6 +62,11 @@ export default async function IssuesPage({
       <IssuesClient
         issues={rows}
         rooms={rooms.map((r) => ({ id: r.id, number: roomLabel(r.building, r.number) }))}
+        lockRoom={
+          backRoom
+            ? { id: backRoom.id, number: roomLabel(backRoom.building, backRoom.number) }
+            : undefined
+        }
       />
     </>
   );

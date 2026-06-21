@@ -84,6 +84,11 @@ export default async function TenantsPage({
         tenants={rows}
         rooms={roomOptions}
         assignRoom={assign ? { id: assign.id, label: assign.number } : undefined}
+        defaultRoom={
+          backRoom
+            ? { id: backRoom.id, label: roomLabel(backRoom.building, backRoom.number) }
+            : undefined
+        }
       />
       {rows.length === 0 && (
         <EmptyState

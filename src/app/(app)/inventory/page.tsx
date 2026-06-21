@@ -61,6 +61,11 @@ export default async function InventoryPage({
       <InventoryClient
         assets={rows}
         rooms={rooms.map((r) => ({ id: r.id, number: roomLabel(r.building, r.number) }))}
+        lockRoom={
+          backRoom
+            ? { id: backRoom.id, number: roomLabel(backRoom.building, backRoom.number) }
+            : undefined
+        }
       />
       {rows.length === 0 && (
         <EmptyState

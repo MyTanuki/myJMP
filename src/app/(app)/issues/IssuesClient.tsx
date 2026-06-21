@@ -35,9 +35,11 @@ const PRIORITY: Record<string, { label: string; tone: string }> = {
 export default function IssuesClient({
   issues,
   rooms,
+  lockRoom,
 }: {
   issues: IssueRow[];
   rooms: RoomOption[];
+  lockRoom?: RoomOption;
 }) {
   const [editing, setEditing] = useState<IssueRow | null>(null);
   const [adding, setAdding] = useState(false);
@@ -107,7 +109,7 @@ export default function IssuesClient({
           }}
           className="space-y-4"
         >
-          <IssueFields rooms={rooms} />
+          <IssueFields rooms={rooms} lockRoom={lockRoom} />
           <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
           </button>
@@ -156,10 +158,12 @@ function IssueFields({
   rooms,
   issue,
   withStatus,
+  lockRoom,
 }: {
   rooms: RoomOption[];
   issue?: IssueRow;
   withStatus?: boolean;
+  lockRoom?: RoomOption;
 }) {
   return (
     <>
@@ -171,18 +175,28 @@ function IssueFields({
         placeholder="อธิบายอาการ จุดที่ต้องซ่อม หรือข้อมูลเพิ่มเติม…"
       />
       <div className="grid grid-cols-2 gap-3">
-        <Select
-          label="ห้อง (ถ้ามี)"
-          name="roomId"
-          defaultValue={issue?.roomId ?? ""}
-        >
-          <option value="">— ไม่ระบุ —</option>
-          {rooms.map((r) => (
-            <option key={r.id} value={r.id}>
-              ห้อง {r.number}
-            </option>
-          ))}
-        </Select>
+        {lockRoom ? (
+          <label className="block">
+            <span className="text-sm font-medium text-slate-600">ห้อง</span>
+            <div className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-700">
+              ห้อง {lockRoom.number}
+            </div>
+            <input type="hidden" name="roomId" value={lockRoom.id} />
+          </label>
+        ) : (
+          <Select
+            label="ห้อง (ถ้ามี)"
+            name="roomId"
+            defaultValue={issue?.roomId ?? ""}
+          >
+            <option value="">— ไม่ระบุ —</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                ห้อง {r.number}
+              </option>
+            ))}
+          </Select>
+        )}
         <Select
           label="ความสำคัญ"
           name="priority"

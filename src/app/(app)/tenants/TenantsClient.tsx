@@ -70,10 +70,12 @@ export default function TenantsClient({
   tenants,
   rooms,
   assignRoom,
+  defaultRoom,
 }: {
   tenants: TenantRow[];
   rooms: RoomOption[];
   assignRoom?: { id: string; label: string };
+  defaultRoom?: { id: string; label: string };
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<TenantRow | null>(null);
@@ -181,7 +183,7 @@ export default function TenantsClient({
           }}
           className="space-y-4"
         >
-          <TenantFields rooms={rooms} lockRoom={assignRoom} />
+          <TenantFields rooms={rooms} lockRoom={assignRoom ?? defaultRoom} />
           <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
           </button>

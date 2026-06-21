@@ -5,13 +5,15 @@ import Link from "next/link";
 import Modal, { Input } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
-import { baht, thaiDate } from "@/lib/format";
+import { baht, thaiDate, thaiMonth, calcInvoice } from "@/lib/format";
 import {
   updateContract,
   toggleDepositPaid,
   saveMoveInItems,
   moveOutTenant,
 } from "./actions";
+import { togglePaid } from "@/app/(app)/invoices/actions";
+import { deleteTenant } from "@/app/(app)/tenants/actions";
 
 export type RoomDetailData = {
   id: string;
@@ -42,8 +44,21 @@ export type RoomDetailData = {
     id: string;
     period: string;
     status: string;
-    total: number;
+    dueDate: string | null;
     overdue: boolean;
+    daysLate: number;
+    lateFee: number;
+    rent: number;
+    prevWater: number;
+    currWater: number;
+    waterRate: number;
+    prevElec: number;
+    currElec: number;
+    elecRate: number;
+    other: number;
+    otherNote: string | null;
+    items: { label: string; amount: number }[];
+    total: number;
   }[];
   assets: {
     id: string;
@@ -183,45 +198,59 @@ function TenantTab({ data }: { data: RoomDetailData }) {
   if (!t)
     return (
       <Section title="ผู้เช่า">
-        <p className="text-slate-400 text-sm">
-          ยังไม่มีผู้เช่าในห้องนี้ —{" "}
+        <div className="text-center py-8">
+          <div className="text-4xl mb-2">👤</div>
+          <p className="text-slate-400 text-sm mb-4">ยังไม่มีผู้เช่าในห้องนี้</p>
           <Link
             href={`/tenants?assign=${data.id}`}
-            className="text-brand-700 hover:underline"
+            className="inline-block bg-brand-600 hover:bg-brand-700 text-white font-medium px-5 py-2.5 rounded-xl transition"
           >
-            เลือก/เพิ่มผู้เช่าเข้าห้องนี้
+            + เพิ่มข้อมูลผู้เช่า
           </Link>
-        </p>
+        </div>
       </Section>
     );
   return (
-    <Section
-      title="ข้อมูลผู้เช่า"
-      right={
-        <div className="flex items-center gap-3 text-sm">
+    <Section title="ผู้เช่า">
+      <div className="rounded-2xl border border-slate-100 p-4 flex flex-wrap items-start gap-4">
+        <div className="grid place-items-center w-16 h-16 rounded-full bg-slate-100 text-slate-500 text-2xl font-semibold shrink-0">
+          {t.name.charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-slate-800 text-lg">{t.name}</div>
+          {t.phone && (
+            <div className="text-sm text-slate-500 mt-0.5">📞 {t.phone}</div>
+          )}
+          <div className="text-sm text-slate-400 mt-0.5">
+            {[t.idCard && `บัตร ${t.idCard}`, t.vehiclePlate && `รถ ${t.vehiclePlate}`]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+          <Link
+            href="/tenants"
+            className="inline-block mt-2 text-sm text-brand-700 hover:underline"
+          >
+            🔍 ดูข้อมูลผู้เช่า
+          </Link>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <form
+            action={async (fd) => {
+              if (!confirm(`ลบผู้เช่า “${t.name}”?\nข้อมูลทั้งหมดจะถูกลบถาวร`)) return;
+              await deleteTenant(fd);
+            }}
+          >
+            <input type="hidden" name="id" value={t.id} />
+            <button className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium transition">
+              ลบผู้เช่า
+            </button>
+          </form>
           <Link
             href={`/tenants?assign=${data.id}`}
-            className="text-brand-700 hover:underline"
+            className="px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 text-sm font-medium transition"
           >
             เปลี่ยน/ย้ายผู้เช่า
           </Link>
-          <Link href="/tenants" className="text-slate-500 hover:underline">
-            จัดการผู้เช่า
-          </Link>
-        </div>
-      }
-    >
-      <div className="flex items-center gap-3">
-        <div className="grid place-items-center w-12 h-12 rounded-full bg-brand-50 text-brand-700 font-semibold">
-          {t.name.charAt(0)}
-        </div>
-        <div>
-          <div className="font-medium text-slate-800">{t.name}</div>
-          <div className="text-sm text-slate-400">
-            {[t.phone, t.idCard && `บัตร ${t.idCard}`, t.vehiclePlate && `รถ ${t.vehiclePlate}`]
-              .filter(Boolean)
-              .join(" · ") || "—"}
-          </div>
         </div>
       </div>
     </Section>
@@ -476,41 +505,148 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
 
 /* ---------- ชำระเงิน ---------- */
 function PaymentTab({ data }: { data: RoomDetailData }) {
+  const invoices = data.invoices;
+  const [sel, setSel] = useState(invoices[0]?.id ?? "");
+
+  if (invoices.length === 0)
+    return (
+      <Section title="ชำระเงิน">
+        <p className="text-slate-400 text-sm">
+          ยังไม่มีบิลสำหรับห้องนี้ —{" "}
+          <Link href="/invoices" className="text-brand-700 hover:underline">
+            ไปหน้าออกบิล
+          </Link>
+        </p>
+      </Section>
+    );
+
+  const inv = invoices.find((i) => i.id === sel) ?? invoices[0];
+  const c = calcInvoice(inv);
+  const t = data.tenant;
+
+  const lines: { label: string; amount: number }[] = [
+    { label: `ค่าเช่าห้อง เดือน ${thaiMonth(inv.period)}`, amount: c.rent },
+    {
+      label: `ค่าน้ำ (${inv.currWater} − ${inv.prevWater} = ${c.waterUnits} หน่วย)`,
+      amount: c.waterCost,
+    },
+    {
+      label: `ค่าไฟ (${inv.currElec} − ${inv.prevElec} = ${c.elecUnits} หน่วย)`,
+      amount: c.elecCost,
+    },
+    ...inv.items.map((it) => ({ label: it.label, amount: it.amount })),
+    ...(inv.other
+      ? [{ label: inv.otherNote || "อื่นๆ", amount: inv.other }]
+      : []),
+    ...(inv.overdue && inv.lateFee > 0
+      ? [{ label: `ค่าปรับล่าช้า ${inv.daysLate} วัน`, amount: inv.lateFee }]
+      : []),
+  ];
+
   return (
-    <Section
-      title="บิล / การชำระเงิน"
-      right={
-        <Link href="/invoices" className="text-sm text-brand-700 hover:underline">
-          ไปหน้าบิล
-        </Link>
-      }
-    >
-      {data.invoices.length === 0 ? (
-        <p className="text-slate-400 text-sm">ยังไม่มีบิล</p>
-      ) : (
-        <div className="space-y-2">
-          {data.invoices.map((inv) => (
-            <div
-              key={inv.id}
-              className="flex items-center justify-between border-b border-slate-50 last:border-0 py-2"
-            >
-              <span className="text-slate-700">เดือน {inv.period}</span>
-              <span className="flex items-center gap-3">
-                <span className="font-medium text-slate-800">
-                  {baht(inv.total)}
-                </span>
-                {inv.status === "paid" ? (
-                  <Badge tone="green">ชำระแล้ว</Badge>
-                ) : inv.overdue ? (
-                  <Badge tone="red">เกินกำหนด</Badge>
-                ) : (
-                  <Badge tone="amber">ค้างชำระ</Badge>
-                )}
-              </span>
-            </div>
+    <Section title="ชำระเงิน">
+      <label className="block mb-4">
+        <span className="text-sm text-slate-500">เลือกบิลย้อนหลัง</span>
+        <select
+          value={sel}
+          onChange={(e) => setSel(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 bg-white outline-none focus:border-brand-500"
+        >
+          {invoices.map((i) => (
+            <option key={i.id} value={i.id}>
+              {thaiMonth(i.period)}{" "}
+              {i.status === "paid"
+                ? "(ชำระแล้ว)"
+                : i.overdue
+                  ? "(เกินกำหนด)"
+                  : "(ค้างชำระ)"}
+            </option>
           ))}
+        </select>
+      </label>
+
+      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+          <span className="font-semibold text-slate-800">
+            บิลค่าเช่า · {thaiMonth(inv.period)}
+          </span>
+          {inv.status === "paid" ? (
+            <Badge tone="green">ชำระแล้ว</Badge>
+          ) : inv.overdue ? (
+            <Badge tone="red">เกินกำหนด</Badge>
+          ) : (
+            <Badge tone="amber">ค้างชำระ</Badge>
+          )}
         </div>
-      )}
+        <div className="p-4">
+          {t && (
+            <div className="text-sm text-slate-500 mb-3">
+              <div className="text-slate-700 font-medium">{t.name}</div>
+              {t.address && <div>{t.address}</div>}
+              {t.phone && <div>{t.phone}</div>}
+            </div>
+          )}
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-400 text-left">
+                <th className="py-2 font-medium">รายการ</th>
+                <th className="py-2 font-medium text-right">จำนวนเงิน (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((l, i) => (
+                <tr key={i} className="border-b border-slate-50">
+                  <td className="py-2 text-slate-700">{l.label}</td>
+                  <td
+                    className={`py-2 text-right ${l.amount < 0 ? "text-red-500" : "text-slate-700"}`}
+                  >
+                    {baht(l.amount)}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td className="py-2.5 font-semibold text-slate-800">รวมทั้งหมด</td>
+                <td className="py-2.5 text-right font-bold text-brand-700">
+                  {baht(inv.total)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <Link
+              href={`/invoices/${inv.id}/print`}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition"
+            >
+              พิมพ์
+            </Link>
+            <Link
+              href={`/invoices?period=${inv.period}`}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition"
+            >
+              แก้ไขบิล
+            </Link>
+            <div className="flex-1" />
+            <form action={togglePaid}>
+              <input type="hidden" name="id" value={inv.id} />
+              <input
+                type="hidden"
+                name="status"
+                value={inv.status === "paid" ? "unpaid" : "paid"}
+              />
+              <button
+                className={`px-5 py-2 rounded-xl text-sm font-medium transition ${
+                  inv.status === "paid"
+                    ? "border border-amber-200 text-amber-700 hover:bg-amber-50"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                }`}
+              >
+                {inv.status === "paid" ? "ยกเลิกการชำระ" : "จ่ายค่าห้อง"}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </Section>
   );
 }

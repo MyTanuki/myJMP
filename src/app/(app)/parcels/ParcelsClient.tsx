@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
 import { Badge } from "@/components/ui";
+import SaveButton from "@/components/SaveButton";
 import { thaiDate } from "@/lib/format";
 import { createParcel, togglePickup, deleteParcel } from "./actions";
 
@@ -127,9 +128,9 @@ export default function ParcelsClient({
             </Select>
           </div>
           <Input label="หมายเหตุ" name="note" />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
-          </button>
+          </SaveButton>
         </form>
       </Modal>
     </>

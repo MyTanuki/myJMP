@@ -4,6 +4,7 @@ import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import { Badge } from "@/components/ui";
+import SaveButton from "@/components/SaveButton";
 import { baht, thaiDate } from "@/lib/format";
 import { createBooking, updateBooking, deleteBooking } from "./actions";
 
@@ -91,9 +92,9 @@ export default function BookingsClient({
           className="space-y-4"
         >
           <BookingFields rooms={rooms} lockRoom={lockRoom} />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
-          </button>
+          </SaveButton>
         </form>
       </Modal>
 
@@ -113,9 +114,9 @@ export default function BookingsClient({
             <input type="hidden" name="id" value={editing.id} />
             <BookingFields rooms={rooms} booking={editing} />
             <div className="flex items-center gap-2">
-              <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+              <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึก
-              </button>
+              </SaveButton>
               <button
                 type="submit"
                 formAction={async (fd) => {

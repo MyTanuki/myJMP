@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
+import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
 import { createUser, updateUser, deleteUser } from "./actions";
 
@@ -82,9 +83,9 @@ export default function StaffClient({ users }: { users: UserRow[] }) {
         >
           <UserFields />
           <ErrorNote error={error} />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             สร้างบัญชี
-          </button>
+          </SaveButton>
         </form>
       </Modal>
 
@@ -102,9 +103,9 @@ export default function StaffClient({ users }: { users: UserRow[] }) {
             <UserFields user={editing} />
             <ErrorNote error={error} />
             <div className="flex items-center gap-2">
-              <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+              <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึก
-              </button>
+              </SaveButton>
               {!editing.isSelf && (
                 <button
                   type="submit"

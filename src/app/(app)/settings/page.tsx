@@ -8,6 +8,7 @@ import {
   updatePenalty,
 } from "./actions";
 import PresetsClient from "./PresetsClient";
+import DirtySaveButton from "@/components/SaveButton";
 
 export default async function SettingsPage() {
   await requireAccess("/settings");
@@ -154,9 +155,9 @@ function Section({
 
 function SaveButton() {
   return (
-    <button className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-5 py-2.5 rounded-xl transition">
+    <DirtySaveButton className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-5 py-2.5 rounded-xl">
       บันทึก
-    </button>
+    </DirtySaveButton>
   );
 }
 

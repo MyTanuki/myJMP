@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Modal, { Input, Select } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
+import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
 import { baht, thaiDate, thaiMonth, calcInvoice } from "@/lib/format";
 import {
@@ -471,9 +472,9 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
             {savedItems && (
               <span className="text-sm text-emerald-600">บันทึกแล้ว</span>
             )}
-            <button className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition">
+            <SaveButton className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition">
               บันทึกใบเสร็จ
-            </button>
+            </SaveButton>
           </div>
         </form>
       </Section>
@@ -666,9 +667,9 @@ function ContractForm({
         name="contractNote"
         defaultValue={t.contractNote ?? ""}
       />
-      <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+      <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
         บันทึก
-      </button>
+      </SaveButton>
     </form>
   );
 }

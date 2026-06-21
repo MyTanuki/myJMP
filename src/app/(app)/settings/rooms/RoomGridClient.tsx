@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import SaveButton from "@/components/SaveButton";
 import { saveRoomGrid } from "./actions";
 
 export type GridRow = {
@@ -152,9 +153,9 @@ export default function RoomGridClient({ initial }: { initial: GridRow[] }) {
         <div className="flex-1" />
         {error && <span className="text-sm text-red-600">{error}</span>}
         {saved && <span className="text-sm text-emerald-600">บันทึกแล้ว</span>}
-        <button className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-5 py-2.5 rounded-xl transition">
+        <SaveButton className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-5 py-2.5 rounded-xl transition">
           บันทึกห้องพัก
-        </button>
+        </SaveButton>
       </div>
 
       <p className="text-xs text-slate-400">

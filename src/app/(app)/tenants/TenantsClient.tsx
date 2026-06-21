@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { searchAddressByDistrict, type ThaiAddress } from "thai-address-database";
 import Modal, { Input, Select } from "@/components/Modal";
 import { Badge } from "@/components/ui";
+import SaveButton from "@/components/SaveButton";
 import { thaiDate } from "@/lib/format";
 import {
   createTenant,
@@ -155,9 +156,9 @@ export default function TenantsClient({
           className="space-y-4"
         >
           <TenantFields rooms={rooms} lockRoom={assignRoom ?? defaultRoom} />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
-          </button>
+          </SaveButton>
         </form>
       </Modal>
 
@@ -178,9 +179,9 @@ export default function TenantsClient({
             <input type="hidden" name="id" value={editing.id} />
             <TenantFields rooms={rooms} tenant={editing} />
             <div className="flex flex-wrap items-center gap-2 pt-2">
-              <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+              <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึก
-              </button>
+              </SaveButton>
               {editing.active && (
                 <button
                   type="submit"

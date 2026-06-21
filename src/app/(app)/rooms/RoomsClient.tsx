@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
+import SaveButton from "@/components/SaveButton";
 import { baht, roomLabel } from "@/lib/format";
 import { updateRoom, generatePortalLink } from "./actions";
 
@@ -178,9 +179,9 @@ export default function RoomsClient({ rooms }: { rooms: RoomRow[] }) {
             <input type="hidden" name="id" value={editing.id} />
             <RoomFields room={editing} />
             <div className="flex items-center gap-2 pt-2">
-              <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+              <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึกการแก้ไข
-              </button>
+              </SaveButton>
               <button
                 type="button"
                 onClick={() => setEditing(null)}

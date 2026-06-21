@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal, { Input, Select, Textarea } from "@/components/Modal";
 import { Badge } from "@/components/ui";
+import SaveButton from "@/components/SaveButton";
 import { thaiDate } from "@/lib/format";
 import { createIssue, updateIssue, deleteIssue } from "./actions";
 
@@ -110,9 +111,9 @@ export default function IssuesClient({
           className="space-y-4"
         >
           <IssueFields rooms={rooms} lockRoom={lockRoom} />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
-          </button>
+          </SaveButton>
         </form>
       </Modal>
 
@@ -132,9 +133,9 @@ export default function IssuesClient({
             <input type="hidden" name="id" value={editing.id} />
             <IssueFields rooms={rooms} issue={editing} withStatus />
             <div className="flex items-center gap-2">
-              <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+              <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึก
-              </button>
+              </SaveButton>
               <button
                 type="submit"
                 formAction={async (fd) => {

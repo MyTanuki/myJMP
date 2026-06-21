@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal, { Input, Select } from "@/components/Modal";
 import { Badge } from "@/components/ui";
+import SaveButton from "@/components/SaveButton";
 import { createAsset, updateAsset, deleteAsset } from "./actions";
 
 export type AssetRow = {
@@ -82,9 +83,9 @@ export default function InventoryClient({
           className="space-y-4"
         >
           <AssetFields rooms={rooms} lockRoom={lockRoom} />
-          <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
             บันทึก
-          </button>
+          </SaveButton>
         </form>
       </Modal>
 
@@ -104,9 +105,9 @@ export default function InventoryClient({
             <input type="hidden" name="id" value={editing.id} />
             <AssetFields rooms={rooms} asset={editing} />
             <div className="flex items-center gap-2">
-              <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+              <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
                 บันทึก
-              </button>
+              </SaveButton>
               <button
                 type="submit"
                 formAction={async (fd) => {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal, { Input } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
+import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
 import { baht, calcInvoice, overdueInfo, roomLabel } from "@/lib/format";
 import { createInvoice, togglePaid, deleteInvoice } from "./actions";
@@ -356,9 +357,9 @@ function InvoiceForm({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
+        <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
           บันทึกบิล
-        </button>
+        </SaveButton>
         {inv && (
           <>
             <a

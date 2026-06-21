@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui";
+import SaveButton from "@/components/SaveButton";
 import { saveBuildingAccess } from "./actions";
 
 export type MatrixUser = {
@@ -112,9 +113,9 @@ export default function BuildingMatrix({
 
       <div className="flex items-center justify-end gap-3 mt-3">
         {saved && <span className="text-sm text-emerald-600">บันทึกแล้ว</span>}
-        <button className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-6 py-2.5 rounded-xl transition">
+        <SaveButton className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-6 py-2.5 rounded-xl transition">
           บันทึกสิทธิ์
-        </button>
+        </SaveButton>
       </div>
     </form>
   );

@@ -21,7 +21,7 @@ export default async function AppLayout({
         role={user.role}
         alertCount={alertCount}
       />
-      <main className="flex-1 min-w-0 p-4 md:p-8 max-w-6xl mx-auto w-full">
+      <main className="flex-1 min-w-0 p-4 md:p-8 max-w-6xl mr-auto w-full">
         {children}
       </main>
     </div>

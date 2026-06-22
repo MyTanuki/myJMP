@@ -20,7 +20,10 @@
       "mcp__Claude_in_Chrome__read_page",
       "mcp__Claude_in_Chrome__computer",
       "mcp__Claude_in_Chrome__browser_batch",
-      "mcp__visualize__read_me"
+      "mcp__visualize__read_me",
+      "Bash(npm run *)",
+      "Bash(echo \"dev started pid $!\")",
+      "mcp__playwright__browser_navigate"
     ]
   }
 }

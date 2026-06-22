@@ -54,7 +54,7 @@ export default function ContractTemplatesClient({
         ))}
       </div>
 
-      <Modal open={adding} onClose={() => setAdding(false)} title="สร้างเทมเพลตสัญญา">
+      <Modal open={adding} onClose={() => setAdding(false)} title="สร้างเทมเพลตสัญญา" size="wide">
         <form
           action={async (fd) => {
             await createTemplate(fd);
@@ -73,6 +73,7 @@ export default function ContractTemplatesClient({
         open={!!editing}
         onClose={() => setEditing(null)}
         title="แก้ไขเทมเพลตสัญญา"
+        size="wide"
       >
         {editing && (
           <form

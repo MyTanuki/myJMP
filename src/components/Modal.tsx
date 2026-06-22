@@ -7,11 +7,13 @@ export default function Modal({
   onClose,
   title,
   children,
+  size = "default",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: "default" | "wide";
 }) {
   const downOnOverlay = useRef(false);
 
@@ -35,7 +37,11 @@ export default function Modal({
         if (e.target === e.currentTarget && downOnOverlay.current) onClose();
       }}
     >
-      <div className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div
+        className={`bg-white w-full ${
+          size === "wide" ? "sm:max-w-4xl" : "sm:max-w-lg"
+        } rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto`}
+      >
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white">
           <h2 className="font-semibold text-slate-800">{title}</h2>
           <button

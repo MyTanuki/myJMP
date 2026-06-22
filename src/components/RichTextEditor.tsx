@@ -207,15 +207,19 @@ export default function RichTextEditor({
         {tbtn("ชิดขวา", () => exec("justifyRight"), "➡")}
       </div>
 
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={sync}
-        onKeyUp={saveSel}
-        onMouseUp={saveSel}
-        className="min-h-[280px] max-h-[420px] overflow-y-auto border border-t-0 border-slate-200 rounded-b-xl bg-white px-4 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-200 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
-      />
+      {/* พื้นเทาคล้ายโต๊ะวางกระดาษ — กระดาษด้านในเป็นขนาด A4 จริงเพื่อกะจำนวนอักษรต่อบรรทัด/หน้า */}
+      <div className="border border-t-0 border-slate-200 rounded-b-xl bg-slate-100 p-4 max-h-[60vh] overflow-auto">
+        <div
+          ref={ref}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={sync}
+          onKeyUp={saveSel}
+          onMouseUp={saveSel}
+          style={{ width: "21cm", minHeight: "29.7cm", padding: "2cm" }}
+          className="mx-auto bg-white shadow-sm text-sm leading-relaxed focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+        />
+      </div>
       <input ref={hiddenRef} type="hidden" name={name} value={html} readOnly />
     </div>
   );

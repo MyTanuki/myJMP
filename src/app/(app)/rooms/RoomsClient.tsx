@@ -108,7 +108,7 @@ export default function RoomsClient({ rooms }: { rooms: RoomRow[] }) {
                   <div className="text-sm font-semibold text-slate-500 mb-2">
                     ชั้น {floor}
                   </div>
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                  <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(140px,1fr))]">
                     {list.map((r) => {
                       const st = STATUS[r.status];
                       return (

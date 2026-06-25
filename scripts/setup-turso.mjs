@@ -1,6 +1,9 @@
 // สร้างตารางบน Turso (libSQL) ตอน deploy บน Vercel
 // ทำงานเฉพาะเมื่อ DATABASE_URL เป็น libsql:// + มี TURSO_AUTH_TOKEN
 // บนเครื่อง local (file:./dev.db) จะข้ามทันที เพื่อไม่กระทบ dev
+//
+// ตั้ง env TURSO_RESET=1 เพื่อ "ล้างแล้วสร้างใหม่" (ใช้ครั้งเดียวตอนสคีมาเปลี่ยน
+// และยังไม่มีข้อมูลจริง — เสร็จแล้วลบ env นี้ออก ไม่งั้นข้อมูลจะถูกล้างทุก deploy)
 import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,6 +11,7 @@ import { createClient } from "@libsql/client";
 
 const url = process.env.DATABASE_URL ?? "";
 const authToken = process.env.TURSO_AUTH_TOKEN;
+const reset = process.env.TURSO_RESET === "1";
 
 if (!url.startsWith("libsql://") || !authToken) {
   console.log("[setup-turso] ข้าม (ไม่ใช่ Turso) — local/build ปกติ");
@@ -30,10 +34,22 @@ const statements = raw
   .map((s) => s.trim())
   .filter((s) => s.replace(/--.*$/gm, "").trim().length > 0);
 
+const tableNames = [
+  ...raw.matchAll(/CREATE TABLE IF NOT EXISTS "([^"]+)"/g),
+].map((m) => m[1]);
+
 const client = createClient({ url, authToken });
 
 let ok = 0;
 try {
+  if (reset) {
+    // libSQL ไม่บังคับ foreign key โดยดีฟอลต์ จึง drop ลำดับใดก็ได้
+    for (const name of tableNames) {
+      await client.execute(`DROP TABLE IF EXISTS "${name}"`);
+    }
+    console.log(`[setup-turso] RESET: drop ${tableNames.length} ตารางเก่าแล้ว`);
+  }
+
   for (const stmt of statements) {
     try {
       await client.execute(stmt);

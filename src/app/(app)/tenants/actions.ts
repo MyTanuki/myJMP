@@ -3,6 +3,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
@@ -25,16 +26,24 @@ function composeName(formData: FormData) {
   return `${prefix}${first}${first && last ? " " : ""}${last}`.trim();
 }
 
-// บันทึกรูปบัตรประชาชนลง public/uploads/idcards แล้วคืน path สำหรับ <img src>
+// บันทึกรูปบัตรประชาชน → คืน URL สำหรับ <img src>
+// Production (Vercel) → Vercel Blob (ระบบไฟล์ serverless เขียนไม่ได้)
+// Local dev → เขียนลง public/uploads/idcards
 async function saveIdCard(formData: FormData) {
   const file = formData.get("idCardImage");
   if (!(file instanceof File) || file.size === 0) return undefined;
   const ext = (file.name.split(".").pop() ?? "jpg")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "") || "jpg";
+  const filename = `${randomUUID()}.${ext}`;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`idcards/${filename}`, file, { access: "public" });
+    return blob.url;
+  }
+
   const dir = path.join(process.cwd(), "public", "uploads", "idcards");
   await mkdir(dir, { recursive: true });
-  const filename = `${randomUUID()}.${ext}`;
   await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
   return `/uploads/idcards/${filename}`;
 }

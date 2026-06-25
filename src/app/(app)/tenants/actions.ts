@@ -1,9 +1,5 @@
 "use server";
 
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
-import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
@@ -26,33 +22,11 @@ function composeName(formData: FormData) {
   return `${prefix}${first}${first && last ? " " : ""}${last}`.trim();
 }
 
-// บันทึกรูปบัตรประชาชน → คืน URL สำหรับ <img src>
-// Production (Vercel) → Vercel Blob (ระบบไฟล์ serverless เขียนไม่ได้)
-// Local dev → เขียนลง public/uploads/idcards
-async function saveIdCard(formData: FormData) {
-  const file = formData.get("idCardImage");
-  if (!(file instanceof File) || file.size === 0) return undefined;
-  const ext = (file.name.split(".").pop() ?? "jpg")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "") || "jpg";
-  const filename = `${randomUUID()}.${ext}`;
-
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(`idcards/${filename}`, file, { access: "public" });
-    return blob.url;
-  }
-
-  // อยู่บน Vercel แต่ยังไม่ได้ตั้งค่า Blob → เขียนไฟล์ไม่ได้ (fs read-only)
-  if (process.env.VERCEL) {
-    throw new Error(
-      "อัปโหลดรูปบัตรไม่ได้: ยังไม่ได้เชื่อม Vercel Blob — สร้าง Blob store เชื่อมกับโปรเจกต์ myjmp1 แล้ว Redeploy"
-    );
-  }
-
-  const dir = path.join(process.cwd(), "public", "uploads", "idcards");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
-  return `/uploads/idcards/${filename}`;
+// รูปบัตรประชาชนถูกย่อเป็น data URL ในเบราว์เซอร์แล้วส่งมาเป็น string
+// เก็บลงฐานข้อมูลตรง ๆ (ไม่ต้องใช้ storage ภายนอก ใช้ได้ทั้ง local และ serverless)
+function idCardFromForm(formData: FormData): string | null {
+  const v = formData.get("idCardImage");
+  return typeof v === "string" && v.trim() ? v : null;
 }
 
 export async function createTenant(formData: FormData) {
@@ -81,7 +55,7 @@ export async function createTenant(formData: FormData) {
       roomId,
       phone: String(formData.get("phone") ?? "").trim() || null,
       idCard: String(formData.get("idCard") ?? "").trim() || null,
-      idCardImage: (await saveIdCard(formData)) ?? null,
+      idCardImage: idCardFromForm(formData),
       vehiclePlate: String(formData.get("vehiclePlate") ?? "").trim() || null,
       address: String(formData.get("address") ?? "").trim() || null,
       subdistrict: String(formData.get("subdistrict") ?? "").trim() || null,
@@ -103,8 +77,6 @@ export async function updateTenant(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
-  const newIdCardImage = await saveIdCard(formData);
-
   await db.tenant.update({
     where: { id },
     data: {
@@ -117,8 +89,8 @@ export async function updateTenant(formData: FormData) {
       roomId: String(formData.get("roomId") ?? "").trim() || null,
       phone: String(formData.get("phone") ?? "").trim() || null,
       idCard: String(formData.get("idCard") ?? "").trim() || null,
-      // อัปเดตรูปเฉพาะเมื่อมีการอัปโหลดใหม่
-      ...(newIdCardImage ? { idCardImage: newIdCardImage } : {}),
+      // ฟอร์มส่งค่ารูปปัจจุบัน (เดิมหรือใหม่) มาเสมอผ่าน hidden input
+      idCardImage: idCardFromForm(formData),
       vehiclePlate: String(formData.get("vehiclePlate") ?? "").trim() || null,
       address: String(formData.get("address") ?? "").trim() || null,
       subdistrict: String(formData.get("subdistrict") ?? "").trim() || null,

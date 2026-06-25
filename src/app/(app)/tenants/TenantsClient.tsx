@@ -218,6 +218,41 @@ export default function TenantsClient({
   );
 }
 
+// ย่อรูปในเบราว์เซอร์ให้เล็กลง แล้วคืนเป็น data URL (JPEG) เก็บลง DB ได้เลย
+async function resizeToDataUrl(
+  file: File,
+  maxDim = 900,
+  quality = 0.65
+): Promise<string> {
+  const src = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const img = document.createElement("img");
+  await new Promise<void>((res, rej) => {
+    img.onload = () => res();
+    img.onerror = rej;
+    img.src = src;
+  });
+  let { width, height } = img;
+  if (width > maxDim || height > maxDim) {
+    if (width >= height) {
+      height = Math.round((height * maxDim) / width);
+      width = maxDim;
+    } else {
+      width = Math.round((width * maxDim) / height);
+      height = maxDim;
+    }
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
 function TenantFields({
   rooms,
   tenant,
@@ -234,6 +269,8 @@ function TenantFields({
   const [province, setProvince] = useState(tenant?.province ?? "");
   const [postalCode, setPostalCode] = useState(tenant?.postalCode ?? "");
   const [sugs, setSugs] = useState<ThaiAddress[]>([]);
+  const [idCardImage, setIdCardImage] = useState(tenant?.idCardImage ?? "");
+  const [imgBusy, setImgBusy] = useState(false);
 
   const onSubdistrict = (v: string) => {
     setSubdistrict(v);
@@ -368,31 +405,42 @@ function TenantFields({
         <span className="text-sm font-medium text-slate-600">
           รูปบัตรประชาชน
         </span>
-        {tenant?.idCardImage && (
-          <a
-            href={tenant.idCardImage}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block mt-1"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={tenant.idCardImage}
-              alt="บัตรประชาชน"
-              className="h-28 rounded-lg border border-slate-200 object-cover"
-            />
-          </a>
+        {/* ส่งค่ารูป (เดิมหรือที่ย่อใหม่) ไปกับฟอร์มผ่าน hidden input */}
+        <input type="hidden" name="idCardImage" value={idCardImage} />
+        {idCardImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={idCardImage}
+            alt="บัตรประชาชน"
+            className="mt-1 h-28 rounded-lg border border-slate-200 object-cover"
+          />
         )}
         <input
           type="file"
-          name="idCardImage"
           accept="image/*"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setImgBusy(true);
+            try {
+              setIdCardImage(await resizeToDataUrl(file));
+            } finally {
+              setImgBusy(false);
+            }
+          }}
           className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:font-medium hover:file:bg-brand-100"
         />
-        {tenant?.idCardImage && (
-          <p className="text-xs text-slate-400 mt-1">
-            เลือกไฟล์ใหม่เพื่อแทนรูปเดิม
-          </p>
+        {imgBusy && (
+          <p className="text-xs text-slate-400 mt-1">กำลังย่อรูป…</p>
+        )}
+        {idCardImage && !imgBusy && (
+          <button
+            type="button"
+            onClick={() => setIdCardImage("")}
+            className="text-xs text-red-600 mt-1"
+          >
+            ลบรูป
+          </button>
         )}
       </div>
     </>

@@ -36,7 +36,8 @@
       "PowerShell(cd C:\\\\github\\\\myJMP; npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script 2>&1 | Out-File -FilePath prisma/turso-schema.sql -Encoding utf8; \"--- generated lines: \" + \\(\\(Get-Content prisma/turso-schema.sql | Measure-Object -Line\\).Lines\\); Get-Content prisma/turso-schema.sql -TotalCount 12)",
       "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|error|✓|Error:\" | Select-Object -First 15 | ForEach-Object { $_.Line.Trim\\(\\) })",
       "PowerShell(cd C:\\\\github\\\\myJMP; node scripts/setup-turso.mjs; \"exit code: $LASTEXITCODE\")",
-      "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|Type error|✓ Compiled|exited\" | Select-Object -First 12 | ForEach-Object { $_.Line.Trim\\(\\) })"
+      "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|Type error|✓ Compiled|exited\" | Select-Object -First 12 | ForEach-Object { $_.Line.Trim\\(\\) })",
+      "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|Type error|error TS|exited with\" | Select-Object -First 15 | ForEach-Object { $_.Line.Trim\\(\\) })"
     ]
   }
 }

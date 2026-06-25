@@ -39,8 +39,13 @@ export default async function TenantsPage({
   const rows: TenantRow[] = tenants.map((t) => ({
     id: t.id,
     name: t.name,
+    prefix: t.prefix,
+    firstName: t.firstName,
+    lastName: t.lastName,
+    nickname: t.nickname,
     phone: t.phone,
     idCard: t.idCard,
+    idCardImage: t.idCardImage,
     vehiclePlate: t.vehiclePlate,
     address: t.address,
     subdistrict: t.subdistrict,

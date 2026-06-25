@@ -19,8 +19,13 @@ import {
 export type TenantRow = {
   id: string;
   name: string;
+  prefix: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  nickname: string | null;
   phone: string | null;
   idCard: string | null;
+  idCardImage: string | null;
   vehiclePlate: string | null;
   address: string | null;
   subdistrict: string | null;
@@ -248,7 +253,26 @@ function TenantFields({
 
   return (
     <>
-      <Input label="ชื่อ-นามสกุล" name="name" defaultValue={tenant?.name} required />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[7rem_1fr_1fr]">
+        <Select label="คำนำหน้า" name="prefix" defaultValue={tenant?.prefix ?? ""}>
+          <option value="">—</option>
+          <option>นาย</option>
+          <option>นาง</option>
+          <option>นางสาว</option>
+        </Select>
+        <Input
+          label="ชื่อ"
+          name="firstName"
+          defaultValue={tenant?.firstName ?? tenant?.name ?? ""}
+          required
+        />
+        <Input
+          label="นามสกุล"
+          name="lastName"
+          defaultValue={tenant?.lastName ?? ""}
+        />
+      </div>
+      <Input label="ชื่อเล่น" name="nickname" defaultValue={tenant?.nickname ?? ""} />
       <div className="grid grid-cols-2 gap-3">
         <Input label="เบอร์โทร" name="phone" defaultValue={tenant?.phone ?? ""} />
         <Input
@@ -257,11 +281,6 @@ function TenantFields({
           defaultValue={tenant?.idCard ?? ""}
         />
       </div>
-      <Input
-        label="ทะเบียนรถ"
-        name="vehiclePlate"
-        defaultValue={tenant?.vehiclePlate ?? ""}
-      />
       {lockRoom ? (
         <div>
           <span className="text-sm font-medium text-slate-600">ห้อง</span>
@@ -339,6 +358,43 @@ function TenantFields({
         />
       </div>
 
+      <Input
+        label="ทะเบียนรถ"
+        name="vehiclePlate"
+        defaultValue={tenant?.vehiclePlate ?? ""}
+      />
+
+      <div>
+        <span className="text-sm font-medium text-slate-600">
+          รูปบัตรประชาชน
+        </span>
+        {tenant?.idCardImage && (
+          <a
+            href={tenant.idCardImage}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block mt-1"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={tenant.idCardImage}
+              alt="บัตรประชาชน"
+              className="h-28 rounded-lg border border-slate-200 object-cover"
+            />
+          </a>
+        )}
+        <input
+          type="file"
+          name="idCardImage"
+          accept="image/*"
+          className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700 file:font-medium hover:file:bg-brand-100"
+        />
+        {tenant?.idCardImage && (
+          <p className="text-xs text-slate-400 mt-1">
+            เลือกไฟล์ใหม่เพื่อแทนรูปเดิม
+          </p>
+        )}
+      </div>
     </>
   );
 }

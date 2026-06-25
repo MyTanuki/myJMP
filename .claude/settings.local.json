@@ -23,7 +23,12 @@
       "mcp__visualize__read_me",
       "Bash(npm run *)",
       "Bash(echo \"dev started pid $!\")",
-      "mcp__playwright__browser_navigate"
+      "mcp__playwright__browser_navigate",
+      "PowerShell(cd C:\\\\github\\\\myJMP; $env:DATABASE_URL=\"file:./dev.db\"; npx prisma migrate dev --name tenant_name_parts_idcard 2>&1 | Select-Object -Last 12)",
+      "PowerShell(cd C:\\\\github\\\\myJMP; $env:DATABASE_URL=\"file:./dev.db\"; npm run build 2>&1 | Select-Object -Last 35)",
+      "PowerShell(cd C:\\\\github\\\\myJMP; $env:DATABASE_URL=\"file:./dev.db\"; npx prisma generate 2>&1 | Select-String \"Generated|Error\" | ForEach-Object { $_.Line.Trim\\(\\) })",
+      "PowerShell(cd C:\\\\github\\\\myJMP; $env:DATABASE_URL=\"file:./dev.db\"; npm run build 2>&1 | Select-Object -Last 30)",
+      "PowerShell(cd C:\\\\github\\\\myJMP; $env:DATABASE_URL=\"file:./dev.db\"; npm run dev)"
     ]
   }
 }

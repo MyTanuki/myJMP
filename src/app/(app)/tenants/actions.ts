@@ -1,5 +1,8 @@
 "use server";
 
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
@@ -9,11 +12,38 @@ function dateOrNull(v: FormDataEntryValue | null) {
   return s ? new Date(s) : null;
 }
 
+function str(v: FormDataEntryValue | null) {
+  const s = String(v ?? "").trim();
+  return s === "" ? null : s;
+}
+
+// ประกอบชื่อเต็มจาก คำนำหน้า + ชื่อ + นามสกุล (ไม่เว้นวรรคหลังคำนำหน้าตามแบบไทย)
+function composeName(formData: FormData) {
+  const prefix = String(formData.get("prefix") ?? "").trim();
+  const first = String(formData.get("firstName") ?? "").trim();
+  const last = String(formData.get("lastName") ?? "").trim();
+  return `${prefix}${first}${first && last ? " " : ""}${last}`.trim();
+}
+
+// บันทึกรูปบัตรประชาชนลง public/uploads/idcards แล้วคืน path สำหรับ <img src>
+async function saveIdCard(formData: FormData) {
+  const file = formData.get("idCardImage");
+  if (!(file instanceof File) || file.size === 0) return undefined;
+  const ext = (file.name.split(".").pop() ?? "jpg")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "") || "jpg";
+  const dir = path.join(process.cwd(), "public", "uploads", "idcards");
+  await mkdir(dir, { recursive: true });
+  const filename = `${randomUUID()}.${ext}`;
+  await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
+  return `/uploads/idcards/${filename}`;
+}
+
 export async function createTenant(formData: FormData) {
   const user = await currentUser();
   if (!user) return;
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = composeName(formData);
   const roomId = String(formData.get("roomId") ?? "").trim() || null;
   if (!name) return;
 
@@ -28,9 +58,14 @@ export async function createTenant(formData: FormData) {
   await db.tenant.create({
     data: {
       name,
+      prefix: str(formData.get("prefix")),
+      firstName: str(formData.get("firstName")),
+      lastName: str(formData.get("lastName")),
+      nickname: str(formData.get("nickname")),
       roomId,
       phone: String(formData.get("phone") ?? "").trim() || null,
       idCard: String(formData.get("idCard") ?? "").trim() || null,
+      idCardImage: (await saveIdCard(formData)) ?? null,
       vehiclePlate: String(formData.get("vehiclePlate") ?? "").trim() || null,
       address: String(formData.get("address") ?? "").trim() || null,
       subdistrict: String(formData.get("subdistrict") ?? "").trim() || null,
@@ -52,13 +87,22 @@ export async function updateTenant(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
+  const newIdCardImage = await saveIdCard(formData);
+
   await db.tenant.update({
     where: { id },
     data: {
-      name: String(formData.get("name") ?? "").trim(),
+      // เก็บชื่อเดิมไว้ถ้าประกอบใหม่ได้ค่าว่าง (กันข้อมูลหาย)
+      name: composeName(formData) || undefined,
+      prefix: str(formData.get("prefix")),
+      firstName: str(formData.get("firstName")),
+      lastName: str(formData.get("lastName")),
+      nickname: str(formData.get("nickname")),
       roomId: String(formData.get("roomId") ?? "").trim() || null,
       phone: String(formData.get("phone") ?? "").trim() || null,
       idCard: String(formData.get("idCard") ?? "").trim() || null,
+      // อัปเดตรูปเฉพาะเมื่อมีการอัปโหลดใหม่
+      ...(newIdCardImage ? { idCardImage: newIdCardImage } : {}),
       vehiclePlate: String(formData.get("vehiclePlate") ?? "").trim() || null,
       address: String(formData.get("address") ?? "").trim() || null,
       subdistrict: String(formData.get("subdistrict") ?? "").trim() || null,

@@ -200,9 +200,14 @@ model Transaction {
 
 model Tenant {
   id            String    @id @default(cuid())
-  name          String
+  name          String // ชื่อเต็ม (ประกอบจาก prefix + firstName + lastName)
+  prefix        String? // คำนำหน้า เช่น นาย/นาง/นางสาว
+  firstName     String? // ชื่อ
+  lastName      String? // นามสกุล
+  nickname      String? // ชื่อเล่น
   phone         String?
   idCard        String?
+  idCardImage   String? // path รูปบัตรประชาชน เช่น /uploads/idcards/xxx.jpg
   vehiclePlate  String? // ทะเบียนรถ
   address       String? // ที่อยู่ผู้เข้าพัก (บ้านเลขที่/ถนน)
   subdistrict   String? // ตำบล/แขวง

@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# uploaded files (id card images)
+/public/uploads
+
 # debug
 npm-debug.log*
 yarn-debug.log*

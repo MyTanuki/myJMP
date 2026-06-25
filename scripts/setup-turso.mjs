@@ -17,20 +17,34 @@ if (!url.startsWith("libsql://") || !authToken) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sqlPath = path.join(__dirname, "..", "prisma", "turso-schema.sql");
 
-// ทำให้รันซ้ำได้: เพิ่ม IF NOT EXISTS
-const sql = readFileSync(sqlPath, "utf8")
+// อ่านไฟล์ + ตัด BOM ถ้ามี + ทำให้รันซ้ำได้ (IF NOT EXISTS)
+const raw = readFileSync(sqlPath, "utf8")
+  .replace(/^﻿/, "")
   .replace(/CREATE TABLE /g, "CREATE TABLE IF NOT EXISTS ")
   .replace(/CREATE UNIQUE INDEX /g, "CREATE UNIQUE INDEX IF NOT EXISTS ")
   .replace(/CREATE INDEX /g, "CREATE INDEX IF NOT EXISTS ");
 
+// แยกเป็นคำสั่งทีละอัน เพื่อรันแยกและ log error ได้ชัด
+const statements = raw
+  .split(";")
+  .map((s) => s.trim())
+  .filter((s) => s.replace(/--.*$/gm, "").trim().length > 0);
+
 const client = createClient({ url, authToken });
 
+let ok = 0;
 try {
-  await client.executeMultiple(sql);
-  console.log("[setup-turso] สร้าง/ยืนยันตารางบน Turso เรียบร้อย");
-} catch (e) {
-  console.error("[setup-turso] ล้มเหลว:", e);
-  process.exit(1);
+  for (const stmt of statements) {
+    try {
+      await client.execute(stmt);
+      ok++;
+    } catch (e) {
+      if (/already exists/i.test(e?.message ?? "")) continue;
+      console.error("[setup-turso] คำสั่งล้มเหลว:\n", stmt, "\n", e);
+      process.exit(1);
+    }
+  }
+  console.log(`[setup-turso] สร้าง/ยืนยันตารางบน Turso เรียบร้อย (${ok} statements)`);
 } finally {
   client.close();
 }

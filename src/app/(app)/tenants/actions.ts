@@ -42,6 +42,13 @@ async function saveIdCard(formData: FormData) {
     return blob.url;
   }
 
+  // อยู่บน Vercel แต่ยังไม่ได้ตั้งค่า Blob → เขียนไฟล์ไม่ได้ (fs read-only)
+  if (process.env.VERCEL) {
+    throw new Error(
+      "อัปโหลดรูปบัตรไม่ได้: ยังไม่ได้เชื่อม Vercel Blob — สร้าง Blob store เชื่อมกับโปรเจกต์ myjmp1 แล้ว Redeploy"
+    );
+  }
+
   const dir = path.join(process.cwd(), "public", "uploads", "idcards");
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));

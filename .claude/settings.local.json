@@ -37,7 +37,19 @@
       "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|error|✓|Error:\" | Select-Object -First 15 | ForEach-Object { $_.Line.Trim\\(\\) })",
       "PowerShell(cd C:\\\\github\\\\myJMP; node scripts/setup-turso.mjs; \"exit code: $LASTEXITCODE\")",
       "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|Type error|✓ Compiled|exited\" | Select-Object -First 12 | ForEach-Object { $_.Line.Trim\\(\\) })",
-      "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|Type error|error TS|exited with\" | Select-Object -First 15 | ForEach-Object { $_.Line.Trim\\(\\) })"
+      "PowerShell(cd C:\\\\github\\\\myJMP; npm run build 2>&1 | Select-String \"setup-turso|Compiled|Failed|Type error|error TS|exited with\" | Select-Object -First 15 | ForEach-Object { $_.Line.Trim\\(\\) })",
+      "Bash(npx tsc *)",
+      "Bash(npx --no-install tsc --noEmit -p tsconfig.json)",
+      "Bash(npm install *)",
+      "Bash(npx next *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(cmdkey /list)",
+      "Bash(\"C:/Users/noppadol.s/Downloads/PortableGit/mingw64/bin/git-credential-manager.exe\" erase *)",
+      "Bash(gh pr create --title 'Add room status column to meter reading page' --body ' *)"
     ]
   }
 }

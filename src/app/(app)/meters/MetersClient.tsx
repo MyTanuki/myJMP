@@ -71,6 +71,7 @@ export default function MetersClient({
                     <thead>
                       <tr className="text-xs text-slate-400 text-left">
                         <th className="py-1 font-medium">ห้อง</th>
+                        <th className="py-1 font-medium text-center">สถานะ</th>
                         <th className="py-1 font-medium text-right">น้ำครั้งก่อน</th>
                         <th className="py-1 font-medium text-right">น้ำครั้งนี้</th>
                         <th className="py-1 font-medium text-right">ไฟครั้งก่อน</th>
@@ -92,6 +93,17 @@ export default function MetersClient({
                                 <div className="text-xs text-slate-400">
                                   {r.tenant}
                                 </div>
+                              )}
+                            </td>
+                            <td className="py-1.5 text-center">
+                              {r.tenant && (
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="currentColor"
+                                  className="w-4 h-4 inline-block text-slate-500"
+                                >
+                                  <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.76-3.58-5-8-5Z" />
+                                </svg>
                               )}
                             </td>
                             <td className="py-1.5 text-right text-slate-400">

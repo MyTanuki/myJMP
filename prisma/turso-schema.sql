@@ -193,6 +193,7 @@ CREATE TABLE "Tenant" (
     "moveInWater" REAL,
     "moveInElec" REAL,
     "contractNote" TEXT,
+    "contractBody" TEXT,
     "moveInDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "contractStart" DATETIME,
     "contractEnd" DATETIME,

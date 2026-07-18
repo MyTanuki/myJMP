@@ -227,6 +227,7 @@ model Tenant {
   moveInWater   Float? // เลขมิเตอร์น้ำตอนเข้าพัก
   moveInElec    Float? // เลขมิเตอร์ไฟตอนเข้าพัก
   contractNote  String? // หมายเหตุสัญญา
+  contractBody  String? // ข้อความสัญญาเฉพาะห้อง (ถ้าไม่กำหนดใช้เทมเพลตเริ่มต้น)
   moveInDate    DateTime  @default(now())
   contractStart DateTime?
   contractEnd   DateTime?

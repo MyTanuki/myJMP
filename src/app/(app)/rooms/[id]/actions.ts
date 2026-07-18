@@ -49,6 +49,24 @@ export async function updateContract(formData: FormData) {
   if (roomId) revalidatePath(`/rooms/${roomId}`);
 }
 
+// บันทึกข้อความสัญญาเฉพาะห้อง (ว่าง = กลับไปใช้เทมเพลตเริ่มต้น)
+export async function saveContractBody(formData: FormData) {
+  const user = await currentUser();
+  if (!user) return;
+  const tenantId = String(formData.get("tenantId") ?? "");
+  const roomId = String(formData.get("roomId") ?? "");
+  if (!tenantId) return;
+
+  const body = String(formData.get("body") ?? "").trim();
+  await db.tenant.update({
+    where: { id: tenantId },
+    data: { contractBody: body === "" || body === "<p></p>" ? null : body },
+  });
+
+  revalidatePath("/", "layout");
+  if (roomId) revalidatePath(`/rooms/${roomId}`);
+}
+
 export async function toggleDepositPaid(formData: FormData) {
   const tenantId = String(formData.get("tenantId") ?? "");
   const roomId = String(formData.get("roomId") ?? "");

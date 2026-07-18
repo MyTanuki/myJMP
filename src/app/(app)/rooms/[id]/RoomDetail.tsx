@@ -7,8 +7,10 @@ import DatePicker from "@/components/DatePicker";
 import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
 import { baht, thaiDate, thaiMonth, calcInvoice } from "@/lib/format";
+import RichTextEditor from "@/components/RichTextEditor";
 import {
   updateContract,
+  saveContractBody,
   toggleDepositPaid,
   saveMoveInItems,
   moveOutTenant,
@@ -42,6 +44,7 @@ export type RoomDetailData = {
     moveInWater: number | null;
     moveInElec: number | null;
     contractNote: string | null;
+    contractBody: string | null; // ข้อความสัญญาเฉพาะห้อง
     contractStart: string | null;
     contractEnd: string | null;
     moveInItems: { label: string; amount: number }[];
@@ -103,6 +106,7 @@ export type RoomDetailData = {
     province: string | null;
     postalCode: string | null;
   }[];
+  defaultContractBody: string; // เทมเพลตสัญญาเริ่มต้น
 };
 
 const TABS = [
@@ -292,6 +296,7 @@ function TenantTab({ data }: { data: RoomDetailData }) {
 function LeaseTab({ data }: { data: RoomDetailData }) {
   const t = data.tenant;
   const [editing, setEditing] = useState(false);
+  const [editingBody, setEditingBody] = useState(false);
   const [items, setItems] = useState(t?.moveInItems ?? []);
   const [savedItems, setSavedItems] = useState(false);
 
@@ -316,17 +321,7 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
   return (
     <>
       {/* ข้อมูลสัญญา */}
-      <Section
-        title="📄 ข้อมูลสัญญา"
-        right={
-          <button
-            onClick={() => setEditing(true)}
-            className="text-sm font-medium text-brand-700 hover:text-brand-800"
-          >
-            แก้ไขข้อมูลสัญญา
-          </button>
-        }
-      >
+      <Section title="📄 ข้อมูลสัญญา">
         <Rows
           rows={[
             ["ชื่อผู้เข้าพัก", t.name],
@@ -339,6 +334,35 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
             ["หมายเหตุ", t.contractNote],
           ]}
         />
+        {/* ปุ่มจัดการสัญญาแบบต้นแบบ */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href={`/rooms/${data.id}/contract/print`}
+            target="_blank"
+            className="rounded-xl bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white transition"
+          >
+            🖨️ พิมพ์สัญญาเช่า
+          </a>
+          <button
+            type="button"
+            onClick={() => setEditingBody(true)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-brand-300 hover:text-brand-700 transition"
+          >
+            📝 แก้ไขข้อความสัญญา
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-brand-300 hover:text-brand-700 transition"
+          >
+            ✏️ แก้ไขข้อมูลสัญญา
+          </button>
+        </div>
+        {t.contractBody && (
+          <p className="mt-2 text-xs text-amber-600">
+            ห้องนี้ใช้ข้อความสัญญาที่แก้ไขเอง (ไม่ใช่เทมเพลตเริ่มต้น)
+          </p>
+        )}
       </Section>
 
       {/* เงินประกัน */}
@@ -494,6 +518,36 @@ function LeaseTab({ data }: { data: RoomDetailData }) {
           roomId={data.id}
           onDone={() => setEditing(false)}
         />
+      </Modal>
+
+      {/* แก้ไขข้อความสัญญาเฉพาะห้อง */}
+      <Modal
+        open={editingBody}
+        onClose={() => setEditingBody(false)}
+        title={`แก้ไขข้อความสัญญา ห้อง ${data.building}-${data.number}`}
+        size="wide"
+      >
+        <form
+          action={async (fd) => {
+            await saveContractBody(fd);
+            setEditingBody(false);
+          }}
+          className="space-y-4"
+        >
+          <input type="hidden" name="tenantId" value={t.id} />
+          <input type="hidden" name="roomId" value={data.id} />
+          <p className="text-xs text-slate-400">
+            ใช้ตัวแปรได้ เช่น {"{ชื่อผู้เช่า} {เลขห้อง} {ค่าเช่า} {เงินประกัน} {วันที่ทำสัญญา} {วันที่สิ้นสุดสัญญา}"}{" "}
+            — ลบเนื้อหาทั้งหมดเพื่อกลับไปใช้เทมเพลตเริ่มต้น
+          </p>
+          <RichTextEditor
+            name="body"
+            defaultValue={t.contractBody ?? data.defaultContractBody}
+          />
+          <SaveButton className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl">
+            บันทึกข้อความสัญญา
+          </SaveButton>
+        </form>
       </Modal>
     </>
   );

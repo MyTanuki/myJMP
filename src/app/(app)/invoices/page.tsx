@@ -106,6 +106,11 @@ export default async function InvoicesPage({
       meterWaterOldEnd: curReading?.waterOldEnd ?? 0,
       meterElecChanged: curReading?.elecMeterChanged ?? false,
       meterElecOldEnd: curReading?.elecOldEnd ?? 0,
+      // รายการบริการจากบิลล่าสุดของห้อง ใช้ตั้งต้นบิลเดือนใหม่
+      prevItems: (earlier?.items ?? []).map((it) => ({
+        label: it.label,
+        amount: it.amount,
+      })),
       invoice,
     };
   });

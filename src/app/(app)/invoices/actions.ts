@@ -31,6 +31,10 @@ export async function createInvoice(formData: FormData) {
     elecRate: Number(formData.get("elecRate") ?? user.elecRate) || 0,
     other: Number(formData.get("other") ?? 0) || 0,
     otherNote: String(formData.get("otherNote") ?? "").trim() || null,
+    waterMeterChanged: Boolean(formData.get("waterMeterChanged")),
+    waterOldEnd: Number(formData.get("waterOldEnd") ?? 0) || 0,
+    elecMeterChanged: Boolean(formData.get("elecMeterChanged")),
+    elecOldEnd: Number(formData.get("elecOldEnd") ?? 0) || 0,
     dueDate: dueRaw ? new Date(dueRaw) : null,
   };
 

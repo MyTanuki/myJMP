@@ -91,6 +91,11 @@ model MeterReading {
   period    String // YYYY-MM
   water     Float    @default(0)
   elec      Float    @default(0)
+  // มิเตอร์เต็ม/เปลี่ยนมิเตอร์ — จดเลขสุดท้ายของมิเตอร์เก่าไว้ หน่วยใช้ = (เลขเก่าสุดท้าย - ครั้งก่อน) + เลขมิเตอร์ใหม่
+  waterMeterChanged Boolean @default(false)
+  waterOldEnd       Float   @default(0)
+  elecMeterChanged  Boolean @default(false)
+  elecOldEnd        Float   @default(0)
   createdAt DateTime @default(now())
 
   roomId String
@@ -249,6 +254,11 @@ model Invoice {
   currWater Float     @default(0)
   prevElec  Float     @default(0)
   currElec  Float     @default(0)
+  // สแนปช็อตสถานะเปลี่ยนมิเตอร์ ณ ตอนออกบิล (คิดหน่วยข้ามมิเตอร์ได้ถูก)
+  waterMeterChanged Boolean @default(false)
+  waterOldEnd       Float   @default(0)
+  elecMeterChanged  Boolean @default(false)
+  elecOldEnd        Float   @default(0)
   waterRate Float     @default(18)
   elecRate  Float     @default(8)
   other     Float     @default(0)

@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
-type Row = { roomId: string; water: number; elec: number };
+type Row = {
+  roomId: string;
+  water: number;
+  elec: number;
+  waterMeterChanged: boolean;
+  waterOldEnd: number;
+  elecMeterChanged: boolean;
+  elecOldEnd: number;
+};
 
 function parseRows(raw: FormDataEntryValue | null): Row[] {
   try {
@@ -15,6 +23,10 @@ function parseRows(raw: FormDataEntryValue | null): Row[] {
         roomId: String(r?.roomId ?? ""),
         water: Number(r?.water) || 0,
         elec: Number(r?.elec) || 0,
+        waterMeterChanged: Boolean(r?.waterMeterChanged),
+        waterOldEnd: Number(r?.waterOldEnd) || 0,
+        elecMeterChanged: Boolean(r?.elecMeterChanged),
+        elecOldEnd: Number(r?.elecOldEnd) || 0,
       }))
       .filter((r) => r.roomId !== "");
   } catch {
@@ -32,21 +44,36 @@ export async function saveMeters(formData: FormData) {
   const rows = parseRows(formData.get("rows"));
 
   for (const row of rows) {
+    const meterFields = {
+      water: row.water,
+      elec: row.elec,
+      waterMeterChanged: row.waterMeterChanged,
+      waterOldEnd: row.waterOldEnd,
+      elecMeterChanged: row.elecMeterChanged,
+      elecOldEnd: row.elecOldEnd,
+    };
+
     await db.meterReading.upsert({
       where: { roomId_period: { roomId: row.roomId, period } },
-      update: { water: row.water, elec: row.elec },
+      update: meterFields,
       create: {
         roomId: row.roomId,
         period,
-        water: row.water,
-        elec: row.elec,
+        ...meterFields,
       },
     });
 
-    // สะท้อนไปยังบิลของรอบนี้ทันที (ถ้ามีบิลแล้ว)
+    // สะท้อนไปยังบิลของรอบนี้ทันที (ถ้ามีบิลแล้ว) รวมสถานะเปลี่ยนมิเตอร์
     await db.invoice.updateMany({
       where: { roomId: row.roomId, period },
-      data: { currWater: row.water, currElec: row.elec },
+      data: {
+        currWater: row.water,
+        currElec: row.elec,
+        waterMeterChanged: row.waterMeterChanged,
+        waterOldEnd: row.waterOldEnd,
+        elecMeterChanged: row.elecMeterChanged,
+        elecOldEnd: row.elecOldEnd,
+      },
     });
   }
 

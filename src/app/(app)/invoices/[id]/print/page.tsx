@@ -37,11 +37,11 @@ export default async function InvoicePrintPage({
   const lines: { label: string; value: number }[] = [
     { label: "ค่าเช่าห้อง", value: c.rent },
     {
-      label: `ค่าน้ำ ${c.waterUnits} หน่วย × ${inv.waterRate}`,
+      label: `ค่าน้ำ ${c.waterUnits} หน่วย × ${inv.waterRate}${inv.waterMeterChanged ? " (เปลี่ยนมิเตอร์)" : ""}`,
       value: c.waterCost,
     },
     {
-      label: `ค่าไฟ ${c.elecUnits} หน่วย × ${inv.elecRate}`,
+      label: `ค่าไฟ ${c.elecUnits} หน่วย × ${inv.elecRate}${inv.elecMeterChanged ? " (เปลี่ยนมิเตอร์)" : ""}`,
       value: c.elecCost,
     },
     ...inv.items.map((it) => ({ label: it.label, value: it.amount })),

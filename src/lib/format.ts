@@ -79,6 +79,19 @@ export type InvoiceCalc = {
   total: number;
 };
 
+// หน่วยที่ใช้ กรณีมิเตอร์เต็ม/เปลี่ยนมิเตอร์: (เลขสุดท้ายมิเตอร์เก่า - ครั้งก่อน) + เลขมิเตอร์ใหม่
+export function meterUnits(
+  prev: number,
+  curr: number,
+  changed?: boolean,
+  oldEnd?: number
+): number {
+  if (changed) {
+    return Math.max(0, (oldEnd ?? 0) - prev) + Math.max(0, curr);
+  }
+  return Math.max(0, curr - prev);
+}
+
 export function calcInvoice(i: {
   rent: number;
   prevWater: number;
@@ -88,10 +101,24 @@ export function calcInvoice(i: {
   waterRate: number;
   elecRate: number;
   other: number;
+  waterMeterChanged?: boolean;
+  waterOldEnd?: number;
+  elecMeterChanged?: boolean;
+  elecOldEnd?: number;
   items?: { amount: number }[];
 }): InvoiceCalc {
-  const waterUnits = Math.max(0, i.currWater - i.prevWater);
-  const elecUnits = Math.max(0, i.currElec - i.prevElec);
+  const waterUnits = meterUnits(
+    i.prevWater,
+    i.currWater,
+    i.waterMeterChanged,
+    i.waterOldEnd
+  );
+  const elecUnits = meterUnits(
+    i.prevElec,
+    i.currElec,
+    i.elecMeterChanged,
+    i.elecOldEnd
+  );
   const waterCost = waterUnits * i.waterRate;
   const elecCost = elecUnits * i.elecRate;
   const itemsTotal = (i.items ?? []).reduce((s, it) => s + (it.amount || 0), 0);

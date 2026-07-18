@@ -61,6 +61,10 @@ export type RoomDetailData = {
     prevElec: number;
     currElec: number;
     elecRate: number;
+    waterMeterChanged: boolean;
+    waterOldEnd: number;
+    elecMeterChanged: boolean;
+    elecOldEnd: number;
     other: number;
     otherNote: string | null;
     items: { label: string; amount: number }[];
@@ -701,11 +705,15 @@ function PaymentTab({ data }: { data: RoomDetailData }) {
   const lines: { label: string; amount: number }[] = [
     { label: `ค่าเช่าห้อง เดือน ${thaiMonth(inv.period)}`, amount: c.rent },
     {
-      label: `ค่าน้ำ (${inv.currWater} − ${inv.prevWater} = ${c.waterUnits} หน่วย)`,
+      label: inv.waterMeterChanged
+        ? `ค่าน้ำ (เปลี่ยนมิเตอร์ เก่าสิ้นสุด ${inv.waterOldEnd} = ${c.waterUnits} หน่วย)`
+        : `ค่าน้ำ (${inv.currWater} − ${inv.prevWater} = ${c.waterUnits} หน่วย)`,
       amount: c.waterCost,
     },
     {
-      label: `ค่าไฟ (${inv.currElec} − ${inv.prevElec} = ${c.elecUnits} หน่วย)`,
+      label: inv.elecMeterChanged
+        ? `ค่าไฟ (เปลี่ยนมิเตอร์ เก่าสิ้นสุด ${inv.elecOldEnd} = ${c.elecUnits} หน่วย)`
+        : `ค่าไฟ (${inv.currElec} − ${inv.prevElec} = ${c.elecUnits} หน่วย)`,
       amount: c.elecCost,
     },
     ...inv.items.map((it) => ({ label: it.label, amount: it.amount })),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { roomLabel } from "@/lib/format";
+import { roomLabel, thaiMonth, meterUnits } from "@/lib/format";
 import SaveButton from "@/components/SaveButton";
 import { saveMeters } from "./actions";
 
@@ -15,7 +15,19 @@ export type MeterLine = {
   prevElec: number;
   water: number;
   elec: number;
+  waterMeterChanged: boolean;
+  waterOldEnd: number;
+  elecMeterChanged: boolean;
+  elecOldEnd: number;
 };
+
+type Mode = "water" | "elec";
+
+function shiftPeriod(period: string, delta: number) {
+  const [y, m] = period.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export default function MetersClient({
   period,
@@ -26,6 +38,11 @@ export default function MetersClient({
 }) {
   const [rows, setRows] = useState(lines);
   const [saved, setSaved] = useState(false);
+  const [mode, setMode] = useState<Mode>("water");
+  const [modalRoomId, setModalRoomId] = useState<string | null>(null);
+
+  const prevLabel = thaiMonth(shiftPeriod(period, -1));
+  const curLabel = thaiMonth(period);
 
   const patch = (roomId: string, p: Partial<MeterLine>) =>
     setRows((xs) => xs.map((r) => (r.roomId === roomId ? { ...r, ...p } : r)));
@@ -43,7 +60,15 @@ export default function MetersClient({
     roomId: r.roomId,
     water: r.water,
     elec: r.elec,
+    waterMeterChanged: r.waterMeterChanged,
+    waterOldEnd: r.waterOldEnd,
+    elecMeterChanged: r.elecMeterChanged,
+    elecOldEnd: r.elecOldEnd,
   }));
+
+  const modalRow = modalRoomId
+    ? rows.find((r) => r.roomId === modalRoomId) ?? null
+    : null;
 
   return (
     <form
@@ -57,6 +82,31 @@ export default function MetersClient({
       <input type="hidden" name="period" value={period} />
       <input type="hidden" name="rows" value={JSON.stringify(payload)} />
 
+      <div className="flex rounded-full bg-white border border-slate-200 p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setMode("water")}
+          className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
+            mode === "water"
+              ? "bg-sky-500 text-white shadow"
+              : "text-sky-600 hover:bg-sky-50"
+          }`}
+        >
+          💧 จดมิเตอร์น้ำ
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("elec")}
+          className={`flex-1 rounded-full py-2 text-sm font-medium transition ${
+            mode === "elec"
+              ? "bg-rose-500 text-white shadow"
+              : "text-rose-600 hover:bg-rose-50"
+          }`}
+        >
+          ⚡ จดมิเตอร์ไฟฟ้า
+        </button>
+      </div>
+
       {[...buildings.entries()].map(([building, floors]) => (
         <div key={building} className="rounded-xl border border-slate-200 p-4">
           <div className="font-semibold text-slate-700 mb-3">อาคาร {building}</div>
@@ -67,31 +117,42 @@ export default function MetersClient({
                   ชั้น {floor}
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] table-fixed text-sm">
+                  <table className="w-full min-w-[600px] table-fixed text-sm">
                     <colgroup>
-                      <col className="w-[22%]" />
+                      <col className="w-[24%]" />
+                      <col className="w-[10%]" />
                       <col className="w-[8%]" />
-                      <col className="w-[13%]" />
-                      <col className="w-[15%]" />
-                      <col className="w-[13%]" />
-                      <col className="w-[15%]" />
+                      <col className="w-[21%]" />
+                      <col className="w-[23%]" />
                       <col className="w-[14%]" />
                     </colgroup>
                     <thead>
                       <tr className="text-xs text-slate-400 text-left">
                         <th className="py-1 font-medium">ห้อง</th>
-                        <th className="py-1 font-medium text-center">สถานะ</th>
-                        <th className="py-1 font-medium text-right">น้ำครั้งก่อน</th>
-                        <th className="py-1 font-medium text-right">น้ำครั้งนี้</th>
-                        <th className="py-1 font-medium text-right">ไฟครั้งก่อน</th>
-                        <th className="py-1 font-medium text-right">ไฟครั้งนี้</th>
-                        <th className="py-1 font-medium text-right">ใช้ไป (น้ำ/ไฟ)</th>
+                        <th className="py-1 font-medium text-center">สถานะห้อง</th>
+                        <th className="py-1 font-medium text-center">อื่นๆ</th>
+                        <th className="py-1 font-medium text-right">
+                          เลขมิเตอร์เดือน ({prevLabel})
+                        </th>
+                        <th className="py-1 font-medium text-right">
+                          เลขมิเตอร์เดือน ({curLabel})
+                        </th>
+                        <th className="py-1 font-medium text-right">หน่วยที่ใช้</th>
                       </tr>
                     </thead>
                     <tbody>
                       {list.map((r) => {
-                        const wu = Math.max(0, r.water - r.prevWater);
-                        const eu = Math.max(0, r.elec - r.prevElec);
+                        const prev = mode === "water" ? r.prevWater : r.prevElec;
+                        const cur = mode === "water" ? r.water : r.elec;
+                        const changed =
+                          mode === "water"
+                            ? r.waterMeterChanged
+                            : r.elecMeterChanged;
+                        const oldEnd =
+                          mode === "water" ? r.waterOldEnd : r.elecOldEnd;
+                        const used = changed
+                          ? meterUnits(prev, cur, true, oldEnd)
+                          : cur - prev;
                         return (
                           <tr key={r.roomId} className="border-t border-slate-50">
                             <td className="py-1.5">
@@ -115,38 +176,56 @@ export default function MetersClient({
                                 </svg>
                               )}
                             </td>
+                            <td className="py-1.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setModalRoomId(r.roomId)}
+                                title="มิเตอร์เต็ม/เปลี่ยนมิเตอร์"
+                                className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border transition ${
+                                  r.waterMeterChanged || r.elecMeterChanged
+                                    ? "border-amber-400 bg-amber-50 text-amber-600"
+                                    : "border-slate-200 text-slate-400 hover:bg-slate-50"
+                                }`}
+                              >
+                                ☰
+                              </button>
+                            </td>
                             <td className="py-1.5 text-right text-slate-400">
-                              {r.prevWater}
+                              {prev}
+                              {changed && (
+                                <div className="text-[10px] text-amber-600 whitespace-nowrap">
+                                  เก่าสิ้นสุด {oldEnd}
+                                </div>
+                              )}
                             </td>
                             <td className="py-1.5 pl-2">
-                              <input
-                                type="number"
-                                value={r.water}
-                                onChange={(e) =>
-                                  patch(r.roomId, {
-                                    water: Number(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-brand-500"
-                              />
+                              <div className="flex items-center gap-1.5">
+                                <span className="shrink-0 text-xs">
+                                  {mode === "water" ? "💧" : "⚡"}
+                                </span>
+                                <input
+                                  type="number"
+                                  value={cur}
+                                  onChange={(e) =>
+                                    patch(
+                                      r.roomId,
+                                      mode === "water"
+                                        ? { water: Number(e.target.value) || 0 }
+                                        : { elec: Number(e.target.value) || 0 }
+                                    )
+                                  }
+                                  className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-brand-500"
+                                />
+                              </div>
                             </td>
-                            <td className="py-1.5 text-right text-slate-400">
-                              {r.prevElec}
-                            </td>
-                            <td className="py-1.5 pl-2">
-                              <input
-                                type="number"
-                                value={r.elec}
-                                onChange={(e) =>
-                                  patch(r.roomId, {
-                                    elec: Number(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-brand-500"
-                              />
-                            </td>
-                            <td className="py-1.5 text-right text-slate-500 whitespace-nowrap">
-                              {wu} / {eu}
+                            <td className="py-1.5 text-right">
+                              {used < 0 ? (
+                                <span className="inline-block rounded-md bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                  {used}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">{used}</span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -166,6 +245,104 @@ export default function MetersClient({
           บันทึกมิเตอร์
         </SaveButton>
       </div>
+
+      {modalRow && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setModalRoomId(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1 font-semibold text-slate-800">
+              มิเตอร์เต็ม/เปลี่ยนมิเตอร์ — ห้อง{" "}
+              {roomLabel(modalRow.building, modalRow.number)}
+            </div>
+            <p className="mb-4 text-xs text-slate-500">
+              ติ๊กเมื่อมิเตอร์วนครบรอบหรือเปลี่ยนลูกใหม่ แล้วกรอก
+              “เลขสุดท้ายของมิเตอร์เก่า” ระบบจะคิดหน่วย = (เลขเก่าสุดท้าย −
+              เลขครั้งก่อน) + เลขมิเตอร์ใหม่ และใช้สูตรนี้ตอนออกบิลด้วย
+            </p>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 p-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={modalRow.waterMeterChanged}
+                    onChange={(e) =>
+                      patch(modalRow.roomId, {
+                        waterMeterChanged: e.target.checked,
+                      })
+                    }
+                  />
+                  💧 มิเตอร์น้ำ เต็ม/เปลี่ยน
+                </label>
+                {modalRow.waterMeterChanged && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <span className="text-slate-500 whitespace-nowrap">
+                      เลขสุดท้ายมิเตอร์เก่า
+                    </span>
+                    <input
+                      type="number"
+                      value={modalRow.waterOldEnd}
+                      onChange={(e) =>
+                        patch(modalRow.roomId, {
+                          waterOldEnd: Number(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-brand-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={modalRow.elecMeterChanged}
+                    onChange={(e) =>
+                      patch(modalRow.roomId, {
+                        elecMeterChanged: e.target.checked,
+                      })
+                    }
+                  />
+                  ⚡ มิเตอร์ไฟ เต็ม/เปลี่ยน
+                </label>
+                {modalRow.elecMeterChanged && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <span className="text-slate-500 whitespace-nowrap">
+                      เลขสุดท้ายมิเตอร์เก่า
+                    </span>
+                    <input
+                      type="number"
+                      value={modalRow.elecOldEnd}
+                      onChange={(e) =>
+                        patch(modalRow.roomId, {
+                          elecOldEnd: Number(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-brand-500"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setModalRoomId(null)}
+                className="rounded-xl bg-brand-600 hover:bg-brand-700 px-5 py-2 text-sm font-medium text-white transition"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

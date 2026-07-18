@@ -67,7 +67,16 @@ export default function MetersClient({
                   ชั้น {floor}
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] text-sm">
+                  <table className="w-full min-w-[840px] table-fixed text-sm">
+                    <colgroup>
+                      <col className="w-[180px]" />
+                      <col className="w-[70px]" />
+                      <col className="w-[110px]" />
+                      <col className="w-[110px]" />
+                      <col className="w-[110px]" />
+                      <col className="w-[110px]" />
+                      <col className="w-[150px]" />
+                    </colgroup>
                     <thead>
                       <tr className="text-xs text-slate-400 text-left">
                         <th className="py-1 font-medium">ห้อง</th>

@@ -23,19 +23,35 @@ export default async function RoomsPage() {
       tenants: { where: { active: true }, take: 1 },
       invoices: { where: { period }, take: 1 },
       issues: { where: { status: { not: "done" } }, select: { id: true }, take: 1 },
+      bookings: {
+        where: { status: { in: ["pending", "confirmed"] } },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
 
+  // สัญญาที่จะหมดภายใน 30 วัน
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 30);
+  const now = new Date();
+
   const rows: RoomRow[] = rooms.map((r) => {
-    const tenant = r.tenants[0]?.name ?? null;
+    const t = r.tenants[0];
+    const tenant = t?.name ?? null;
     const invoice = r.invoices[0];
     let status: RoomStatus;
-    if (!tenant) status = "vacant";
+    if (!tenant) status = r.bookings.length > 0 ? "booked" : "vacant";
     else if (!invoice) status = "nobill";
     else if (invoice.status === "paid") status = "paid";
     else status = "unpaid";
 
+    const contractEnd = t?.contractEnd ?? null;
+    const contractExpiring =
+      !!contractEnd && contractEnd >= now && contractEnd <= soon;
+
     return {
+      contractExpiring,
       id: r.id,
       building: r.building,
       number: r.number,
@@ -59,7 +75,9 @@ export default async function RoomsPage() {
     };
   });
 
-  const vacant = rows.filter((r) => r.status === "vacant").length;
+  const vacant = rows.filter(
+    (r) => r.status === "vacant" || r.status === "booked"
+  ).length;
 
   return (
     <>

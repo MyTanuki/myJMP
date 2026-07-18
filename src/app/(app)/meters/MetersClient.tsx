@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { roomLabel, thaiMonth, meterUnits } from "@/lib/format";
 import SaveButton from "@/components/SaveButton";
 import { saveMeters } from "./actions";
@@ -40,6 +40,8 @@ export default function MetersClient({
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<Mode>("water");
   const [modalRoomId, setModalRoomId] = useState<string | null>(null);
+  // ค่าเริ่มต้นไว้เทียบ — บันทึกเฉพาะห้องที่แก้จริง กันเขียนทับห้องอื่นด้วยค่าเดิม/ศูนย์
+  const initialRef = useRef(new Map(lines.map((l) => [l.roomId, l])));
 
   const prevLabel = thaiMonth(shiftPeriod(period, -1));
   const curLabel = thaiMonth(period);
@@ -56,7 +58,21 @@ export default function MetersClient({
     fl.get(r.floor)!.push(r);
   }
 
-  const payload = rows.map((r) => ({
+  const isDirty = (r: MeterLine) => {
+    const o = initialRef.current.get(r.roomId);
+    if (!o) return true;
+    return (
+      o.water !== r.water ||
+      o.elec !== r.elec ||
+      o.waterMeterChanged !== r.waterMeterChanged ||
+      o.waterOldEnd !== r.waterOldEnd ||
+      o.elecMeterChanged !== r.elecMeterChanged ||
+      o.elecOldEnd !== r.elecOldEnd
+    );
+  };
+
+  // ส่งเฉพาะห้องที่มีการแก้ไข
+  const payload = rows.filter(isDirty).map((r) => ({
     roomId: r.roomId,
     water: r.water,
     elec: r.elec,
@@ -74,6 +90,8 @@ export default function MetersClient({
     <form
       action={async (fd) => {
         await saveMeters(fd);
+        // รีเซ็ตฐานเทียบเป็นค่าที่เพิ่งบันทึก
+        initialRef.current = new Map(rows.map((r) => [r.roomId, { ...r }]));
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       }}

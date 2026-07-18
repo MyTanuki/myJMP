@@ -52,7 +52,20 @@
       "Bash(gh pr create --title 'Add room status column to meter reading page' --body ' *)",
       "Bash(gh pr *)",
       "Bash(git fetch *)",
-      "Bash(gh pr create --repo MyTanuki/myJMP --base main --head claude/meter-room-status-column-f5ce0e --title 'Align meter table column widths' --body ' *)"
+      "Bash(gh pr create --repo MyTanuki/myJMP --base main --head claude/meter-room-status-column-f5ce0e --title 'Align meter table column widths' --body ' *)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__computer",
+      "mcp__claude-in-chrome__get_page_text",
+      "mcp__claude-in-chrome__read_page",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude-in-chrome__javascript_tool",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(npx prisma *)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx prisma migrate dev --name meter_change)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx prisma generate)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx prisma migrate dev --name settings_info_fields)"
     ]
   }
 }

@@ -73,12 +73,38 @@ export default function InvoicesClient({
 }) {
   const [active, setActive] = useState<RoomLine | null>(null);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+  const [filter, setFilter] = useState<
+    "all" | "unpaid" | "paid" | "nobill"
+  >("all");
+  const [q, setQ] = useState("");
 
   const pendingCount = lines.filter((l) => l.tenant && !l.invoice).length;
+  const unpaidCount = lines.filter(
+    (l) => l.invoice && l.invoice.status !== "paid"
+  ).length;
+  const paidCount = lines.filter(
+    (l) => l.invoice && l.invoice.status === "paid"
+  ).length;
+
+  const kw = q.trim().toLowerCase();
+  const visible = lines.filter((l) => {
+    if (filter === "unpaid" && !(l.invoice && l.invoice.status !== "paid"))
+      return false;
+    if (filter === "paid" && !(l.invoice && l.invoice.status === "paid"))
+      return false;
+    if (filter === "nobill" && !(l.tenant && !l.invoice)) return false;
+    if (
+      kw &&
+      !roomLabel(l.building, l.number).toLowerCase().includes(kw) &&
+      !(l.tenant ?? "").toLowerCase().includes(kw)
+    )
+      return false;
+    return true;
+  });
 
   // จัดกลุ่มเป็น อาคาร → ชั้น (lines มาเรียงตามอาคาร/ชั้น/ห้องแล้วจากเซิร์ฟเวอร์)
   const buildings = new Map<string, Map<number, RoomLine[]>>();
-  for (const line of lines) {
+  for (const line of visible) {
     if (!buildings.has(line.building)) buildings.set(line.building, new Map());
     const floors = buildings.get(line.building)!;
     if (!floors.has(line.floor)) floors.set(line.floor, []);
@@ -163,6 +189,37 @@ export default function InvoicesClient({
           ⚡ ออกบิลทั้งเดือน
         </button>
       </form>
+
+      {/* ค้นหา + ฟิลเตอร์บิลแบบต้นแบบ */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="ค้นหาห้อง / ชื่อผู้เช่า"
+          className="w-56 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+        />
+        {(
+          [
+            { key: "all", label: `บิลทั้งหมด (${lines.length})` },
+            { key: "unpaid", label: `ค้างชำระ (${unpaidCount})` },
+            { key: "paid", label: `ชำระแล้ว (${paidCount})` },
+            { key: "nobill", label: `ยังไม่ออกบิล (${pendingCount})` },
+          ] as const
+        ).map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => setFilter(f.key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition border ${
+              filter === f.key
+                ? "bg-brand-600 border-brand-600 text-white"
+                : "bg-white border-slate-200 text-slate-600 hover:border-brand-300"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       <div className="space-y-5">
         {[...buildings.entries()].map(([building, floors]) => (

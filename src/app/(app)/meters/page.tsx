@@ -93,7 +93,7 @@ export default async function MetersPage({
           hint="เพิ่มห้องที่ ตั้งค่า › จัดการห้องพัก"
         />
       ) : (
-        <MetersClient period={period} lines={lines} />
+        <MetersClient key={period} period={period} lines={lines} />
       )}
     </>
   );

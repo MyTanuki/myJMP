@@ -36,6 +36,12 @@ export default async function RoomDetailPage({
   const lateFeePerDay = user?.lateFeePerDay ?? 0;
   const t = room.tenants[0] ?? null;
 
+  // เทมเพลตสัญญาเริ่มต้น — ใช้เมื่อห้องยังไม่มีข้อความสัญญาของตัวเอง
+  const defaultTemplate = await db.contractTemplate.findFirst({
+    where: { isDefault: true },
+    orderBy: { createdAt: "asc" },
+  });
+
   // รายชื่อผู้เช่าทั้งหมด สำหรับ dropdown "เลือกข้อมูลจากผู้เช่า" ในฟอร์มสัญญา
   const allTenants = await db.tenant.findMany({
     orderBy: { name: "asc" },
@@ -78,6 +84,7 @@ export default async function RoomDetailPage({
           moveInWater: t.moveInWater,
           moveInElec: t.moveInElec,
           contractNote: t.contractNote,
+          contractBody: t.contractBody,
           contractStart: t.contractStart?.toISOString() ?? null,
           contractEnd: t.contractEnd?.toISOString() ?? null,
           moveInItems: t.moveInItems.map((m) => ({
@@ -138,6 +145,7 @@ export default async function RoomDetailPage({
     })),
     dormName: user?.dormName ?? "",
     tenantOptions: allTenants,
+    defaultContractBody: defaultTemplate?.body ?? "",
   };
 
   return <RoomDetail data={data} />;

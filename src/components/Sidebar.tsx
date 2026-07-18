@@ -14,8 +14,8 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/", label: "ภาพรวม", icon: "📊" },
   { href: "/rooms", label: "ห้องพัก", icon: "🏠" },
+  { href: "/dashboard", label: "ภาพรวม", icon: "📊" },
   { href: "/tenants", label: "ผู้เช่า", icon: "👤" },
   { href: "/bookings", label: "การจอง", icon: "📅" },
   { href: "/meters", label: "จดมิเตอร์", icon: "🔢" },

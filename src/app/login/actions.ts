@@ -22,7 +22,7 @@ export async function loginAction(
   }
 
   await createSession(user.id, user.name);
-  redirect("/");
+  redirect("/rooms"); // หน้าแรก = ห้องพัก
 }
 
 export async function registerAction(
@@ -47,7 +47,7 @@ export async function registerAction(
   });
 
   await createSession(user.id, user.name);
-  redirect("/");
+  redirect("/rooms"); // หน้าแรก = ห้องพัก
 }
 
 export async function logoutAction() {

@@ -5,7 +5,7 @@ import LoginForm from "./LoginForm";
 export default async function LoginPage() {
   // ตรวจว่ามีผู้ใช้จริง (ไม่ใช่แค่คุกกี้ค้าง) เพื่อกันลูป redirect เมื่อ uid ในคุกกี้ใช้ไม่ได้
   const user = await currentUser();
-  if (user) redirect("/");
+  if (user) redirect("/rooms");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 via-white to-emerald-50 p-4">

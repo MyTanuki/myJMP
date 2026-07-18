@@ -49,7 +49,10 @@
       "Bash(git config *)",
       "Bash(cmdkey /list)",
       "Bash(\"C:/Users/noppadol.s/Downloads/PortableGit/mingw64/bin/git-credential-manager.exe\" erase *)",
-      "Bash(gh pr create --title 'Add room status column to meter reading page' --body ' *)"
+      "Bash(gh pr create --title 'Add room status column to meter reading page' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(git fetch *)",
+      "Bash(gh pr create --repo MyTanuki/myJMP --base main --head claude/meter-room-status-column-f5ce0e --title 'Align meter table column widths' --body ' *)"
     ]
   }
 }

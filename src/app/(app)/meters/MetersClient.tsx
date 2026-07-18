@@ -67,15 +67,15 @@ export default function MetersClient({
                   ชั้น {floor}
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[840px] table-fixed text-sm">
+                  <table className="w-full min-w-[560px] table-fixed text-sm">
                     <colgroup>
-                      <col className="w-[180px]" />
-                      <col className="w-[70px]" />
-                      <col className="w-[110px]" />
-                      <col className="w-[110px]" />
-                      <col className="w-[110px]" />
-                      <col className="w-[110px]" />
-                      <col className="w-[150px]" />
+                      <col className="w-[22%]" />
+                      <col className="w-[8%]" />
+                      <col className="w-[13%]" />
+                      <col className="w-[15%]" />
+                      <col className="w-[13%]" />
+                      <col className="w-[15%]" />
+                      <col className="w-[14%]" />
                     </colgroup>
                     <thead>
                       <tr className="text-xs text-slate-400 text-left">

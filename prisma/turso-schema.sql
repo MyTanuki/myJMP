@@ -194,6 +194,8 @@ CREATE TABLE "Tenant" (
     "moveInElec" REAL,
     "contractNote" TEXT,
     "contractBody" TEXT,
+    "moveOutDate" DATETIME,
+    "moveOutNote" TEXT,
     "moveInDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "contractStart" DATETIME,
     "contractEnd" DATETIME,

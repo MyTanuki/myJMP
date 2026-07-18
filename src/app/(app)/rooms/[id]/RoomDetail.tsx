@@ -13,7 +13,7 @@ import {
   saveContractBody,
   toggleDepositPaid,
   saveMoveInItems,
-  moveOutTenant,
+  settleMoveOut,
 } from "./actions";
 import { togglePaid } from "@/app/(app)/invoices/actions";
 import { deleteTenant } from "@/app/(app)/tenants/actions";
@@ -923,31 +923,294 @@ function AssetsTab({ data }: { data: RoomDetailData }) {
 /* ---------- ย้ายออก ---------- */
 function MoveOutTab({ data }: { data: RoomDetailData }) {
   const t = data.tenant;
+  // บิลค้างชำระทั้งหมดของห้อง
+  const unpaid = data.invoices.filter((i) => i.status !== "paid");
+  const [deducted, setDeducted] = useState<Set<string>>(new Set());
+  const [damages, setDamages] = useState<Record<string, number>>({});
+  const [extras, setExtras] = useState<{ label: string; amount: number }[]>([]);
+
   if (!t)
     return (
       <Section title="ย้ายออก">
         <p className="text-slate-400 text-sm">ห้องนี้ว่างอยู่แล้ว</p>
       </Section>
     );
+
+  const contractEnded = t.contractEnd
+    ? new Date(t.contractEnd) < new Date()
+    : false;
+
+  const toggleDeduct = (id: string) =>
+    setDeducted((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  const deductedTotal = unpaid
+    .filter((i) => deducted.has(i.id))
+    .reduce((s, i) => s + i.total, 0);
+  const damageList = data.assets
+    .filter((a) => (damages[a.id] || 0) !== 0)
+    .map((a) => ({ label: `ค่าเสียหาย ${a.name}`, amount: damages[a.id] }));
+  const damageTotal = damageList.reduce((s, d) => s + d.amount, 0);
+  const extrasClean = extras.filter((e) => e.label.trim() && e.amount !== 0);
+  const extrasTotal = extrasClean.reduce((s, e) => s + e.amount, 0);
+  const refund = t.deposit - deductedTotal - damageTotal - extrasTotal;
+
+  const unclearedCount = unpaid.filter((i) => !deducted.has(i.id)).length;
+
+  const summaryPayload = JSON.stringify({
+    deductedInvoiceIds: [...deducted],
+    damages: damageList,
+    extras: extrasClean,
+    deposit: t.deposit,
+    refund,
+  });
+
+  const patchExtra = (
+    i: number,
+    p: Partial<{ label: string; amount: number }>
+  ) => setExtras((xs) => xs.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
+
   return (
-    <Section title="แจ้งย้ายออก">
-      <p className="text-sm text-slate-500 mb-4">
-        ทำเครื่องหมายว่า <b>{t.name}</b> ย้ายออกจากห้อง {data.number} — ห้องจะกลับเป็นสถานะว่าง
-        (ประวัติบิลและสัญญายังถูกเก็บไว้)
+    <>
+      <p className="text-sm text-slate-500 -mt-1 mb-1">
+        ขั้นตอนการย้ายออก: 1.เคลียร์บิลค้างชำระ 2.ตรวจสอบทรัพย์สิน
+        3.ค่าใช้จ่ายเพิ่มเติม/ส่วนลด 4.สรุปยอดคืนเงินประกัน
       </p>
-      <form
-        action={async (fd) => {
-          if (!confirm("ยืนยันแจ้งย้ายออก?")) return;
-          await moveOutTenant(fd);
-        }}
-      >
-        <input type="hidden" name="tenantId" value={t.id} />
-        <input type="hidden" name="roomId" value={data.id} />
-        <button className="bg-red-600 hover:bg-red-700 text-white font-medium px-5 py-2.5 rounded-xl transition">
-          แจ้งย้ายออก
+
+      {/* รายละเอียดสัญญา */}
+      <Section title="📄 รายละเอียดสัญญาเช่า">
+        <Rows
+          rows={[
+            ["ผู้เช่า", t.name],
+            ["วันที่ทำสัญญา", thaiDate(t.contractStart)],
+            ["วันที่สิ้นสุดสัญญา", thaiDate(t.contractEnd)],
+            [
+              "สถานะสัญญา",
+              t.contractEnd
+                ? contractEnded
+                  ? "หมดสัญญาแล้ว"
+                  : "ยังไม่หมดสัญญา"
+                : "—",
+            ],
+            [
+              "เงินประกัน",
+              `${baht(t.deposit)} (${t.depositPaid ? "ชำระแล้ว" : "ยังไม่ชำระ"})`,
+            ],
+            ["หมายเหตุ", t.contractNote],
+          ]}
+        />
+      </Section>
+
+      {/* STEP 1 บิลค้างชำระ */}
+      <Section title="1️⃣ เคลียร์บิลค้างชำระ">
+        {unpaid.length === 0 ? (
+          <p className="text-sm text-emerald-600">ไม่มีบิลค้างชำระ ✓</p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-slate-400">
+              ติ๊ก “หักจากเงินประกัน” หรือไปรับชำระที่แท็บ ชำระเงิน ให้ครบทุกบิลก่อนย้ายออก
+            </p>
+            {unpaid.map((inv) => (
+              <label
+                key={inv.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              >
+                <div>
+                  <div className="font-medium text-slate-700">
+                    บิลค่าเช่าเดือน {thaiMonth(inv.period)}
+                  </div>
+                  <div className="text-xs text-red-600">
+                    ค้างชำระ {baht(inv.total)}
+                    {inv.overdue && ` · เกินกำหนด ${inv.daysLate} วัน`}
+                  </div>
+                </div>
+                <span className="flex items-center gap-2 text-slate-600 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={deducted.has(inv.id)}
+                    onChange={() => toggleDeduct(inv.id)}
+                  />
+                  หักจากเงินประกัน
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* STEP 2 ทรัพย์สินเสียหาย */}
+      <Section title="2️⃣ ตรวจสอบทรัพย์สิน (ค่าเสียหาย)">
+        {data.assets.length === 0 ? (
+          <p className="text-sm text-slate-400">ไม่มีข้อมูลรายการทรัพย์สิน</p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-slate-400">
+              กรอกค่าเสียหายเฉพาะรายการที่ชำรุด (0 = ไม่เสียหาย)
+            </p>
+            {data.assets.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <span className="text-slate-700">{a.name}</span>
+                  <span className="text-slate-400">
+                    {" "}
+                    × {a.quantity} · สภาพ{a.condition}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  value={damages[a.id] ?? ""}
+                  placeholder="0"
+                  onChange={(e) =>
+                    setDamages((d) => ({
+                      ...d,
+                      [a.id]: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-brand-500"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* STEP 3 ค่าใช้จ่ายเพิ่มเติม */}
+      <Section title="3️⃣ ค่าใช้จ่ายเพิ่มเติม / ส่วนลด">
+        <p className="text-xs text-slate-400 mb-2">
+          เช่น ค่าทำความสะอาด ค่าน้ำ-ไฟครั้งสุดท้าย ค่าปรับ (ส่วนลด/คืนเงินใส่ค่าติดลบ)
+        </p>
+        {extras.map((e, i) => (
+          <div key={i} className="mb-2 flex items-center gap-2">
+            <input
+              value={e.label}
+              placeholder="ชื่อรายการ"
+              onChange={(ev) => patchExtra(i, { label: ev.target.value })}
+              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            />
+            <input
+              type="number"
+              value={e.amount}
+              onChange={(ev) =>
+                patchExtra(i, { amount: Number(ev.target.value) || 0 })
+              }
+              className="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm text-right outline-none focus:border-brand-500"
+            />
+            <button
+              type="button"
+              onClick={() => setExtras((xs) => xs.filter((_, idx) => idx !== i))}
+              className="px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 text-sm"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => setExtras((xs) => [...xs, { label: "", amount: 0 }])}
+          className="text-sm font-medium text-brand-700 hover:text-brand-800"
+        >
+          + เพิ่มรายการ
         </button>
-      </form>
-    </Section>
+      </Section>
+
+      {/* STEP 4 สรุป */}
+      <Section title="4️⃣ สรุปการย้ายออก">
+        <table className="w-full text-sm mb-4">
+          <tbody>
+            <tr className="border-b border-slate-50">
+              <td className="py-2 text-slate-600">เงินประกันห้อง</td>
+              <td className="py-2 text-right text-slate-800">
+                {baht(t.deposit)}
+              </td>
+            </tr>
+            {unpaid
+              .filter((i) => deducted.has(i.id))
+              .map((i) => (
+                <tr key={i.id} className="border-b border-slate-50">
+                  <td className="py-2 text-slate-600">
+                    หักบิลเดือน {thaiMonth(i.period)}
+                  </td>
+                  <td className="py-2 text-right text-red-600">
+                    −{baht(i.total)}
+                  </td>
+                </tr>
+              ))}
+            {damageList.map((d, i) => (
+              <tr key={`d${i}`} className="border-b border-slate-50">
+                <td className="py-2 text-slate-600">{d.label}</td>
+                <td className="py-2 text-right text-red-600">
+                  −{baht(d.amount)}
+                </td>
+              </tr>
+            ))}
+            {extrasClean.map((e, i) => (
+              <tr key={`e${i}`} className="border-b border-slate-50">
+                <td className="py-2 text-slate-600">{e.label}</td>
+                <td
+                  className={`py-2 text-right ${e.amount < 0 ? "text-emerald-600" : "text-red-600"}`}
+                >
+                  {e.amount < 0 ? `+${baht(-e.amount)}` : `−${baht(e.amount)}`}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <td className="py-2 font-semibold text-slate-800">
+                {refund >= 0 ? "ยอดเงินประกันคืนผู้เช่า" : "ผู้เช่าต้องชำระเพิ่ม"}
+              </td>
+              <td
+                className={`py-2 text-right text-lg font-bold ${refund >= 0 ? "text-emerald-600" : "text-red-600"}`}
+              >
+                {baht(Math.abs(refund))}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {unclearedCount > 0 && (
+          <p className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            ⚠️ ยังมีบิลค้างชำระ {unclearedCount} บิล ที่ไม่ได้เลือกหักจากเงินประกัน —
+            รับชำระที่แท็บ ชำระเงิน หรือติ๊กหักจากเงินประกันให้ครบก่อน
+          </p>
+        )}
+
+        <form
+          action={async (fd) => {
+            if (
+              !confirm(
+                `ยืนยันย้ายออก?\n${refund >= 0 ? `คืนเงินประกันผู้เช่า ${baht(refund)}` : `เก็บเงินเพิ่มจากผู้เช่า ${baht(-refund)}`}`
+              )
+            )
+              return;
+            await settleMoveOut(fd);
+          }}
+          className="flex flex-wrap items-end gap-3"
+        >
+          <input type="hidden" name="tenantId" value={t.id} />
+          <input type="hidden" name="roomId" value={data.id} />
+          <input type="hidden" name="summary" value={summaryPayload} />
+          <div className="w-44">
+            <DatePicker
+              label="วันที่ย้ายออก"
+              name="moveOutDate"
+              defaultValue={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
+          <button
+            disabled={unclearedCount > 0}
+            className="bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-5 py-2.5 rounded-xl transition"
+          >
+            ยืนยันย้ายออก
+          </button>
+        </form>
+      </Section>
+    </>
   );
 }
 

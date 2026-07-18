@@ -229,6 +229,8 @@ model Tenant {
   contractNote  String? // หมายเหตุสัญญา
   contractBody  String? // ข้อความสัญญาเฉพาะห้อง (ถ้าไม่กำหนดใช้เทมเพลตเริ่มต้น)
   moveInDate    DateTime  @default(now())
+  moveOutDate   DateTime? // วันที่ย้ายออกจริง
+  moveOutNote   String? // สรุปการย้ายออก (JSON: บิลที่หัก ค่าเสียหาย รายการเพิ่ม ยอดคืนประกัน)
   contractStart DateTime?
   contractEnd   DateTime?
   active        Boolean   @default(true) // ยังพักอยู่ไหม

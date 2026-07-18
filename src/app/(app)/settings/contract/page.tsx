@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { requireAccess } from "@/lib/auth";
-import { PageHeader, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import ContractTemplatesClient from "./ContractTemplatesClient";
 
 export default async function ContractTemplatesPage() {
@@ -11,10 +11,6 @@ export default async function ContractTemplatesPage() {
 
   return (
     <>
-      <PageHeader
-        title="เทมเพลตสัญญา"
-        subtitle="สร้างและจัดการแม่แบบสัญญาเช่า เลือกเทมเพลตเริ่มต้นได้"
-      />
       <ContractTemplatesClient
         templates={templates.map((t) => ({
           id: t.id,

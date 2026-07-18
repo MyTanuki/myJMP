@@ -31,9 +31,7 @@ const NAV: NavItem[] = [
     label: "ตั้งค่า",
     icon: "⚙️",
     children: [
-      { href: "/settings", label: "ตั้งค่าทั่วไป", icon: "🔧" },
-      { href: "/settings/rooms", label: "จัดการห้องพัก", icon: "🏗️" },
-      { href: "/settings/contract", label: "เทมเพลตสัญญา", icon: "📑" },
+      { href: "/settings", label: "ตั้งค่าหอพัก", icon: "🔧" },
       { href: "/staff", label: "พนักงาน", icon: "🧑‍💼" },
       { href: "/subscription", label: "แพ็กเกจ", icon: "💎" },
     ],

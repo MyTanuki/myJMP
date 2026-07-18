@@ -56,11 +56,13 @@ export default function InvoicesClient({
   lines,
   presets,
   lateFeePerDay,
+  dueDay,
 }: {
   period: string;
   lines: RoomLine[];
   presets: Preset[];
   lateFeePerDay: number;
+  dueDay: number | null;
 }) {
   const [active, setActive] = useState<RoomLine | null>(null);
 
@@ -154,6 +156,7 @@ export default function InvoicesClient({
             period={period}
             presets={presets}
             lateFeePerDay={lateFeePerDay}
+            dueDay={dueDay}
             onDone={() => setActive(null)}
           />
         )}
@@ -167,12 +170,14 @@ function InvoiceForm({
   period,
   presets,
   lateFeePerDay,
+  dueDay,
   onDone,
 }: {
   line: RoomLine;
   period: string;
   presets: Preset[];
   lateFeePerDay: number;
+  dueDay: number | null;
   onDone: () => void;
 }) {
   const inv = line.invoice;
@@ -369,7 +374,14 @@ function InvoiceForm({
       <DatePicker
         label="กำหนดชำระ"
         name="dueDate"
-        defaultValue={inv?.dueDate ? inv.dueDate.slice(0, 10) : ""}
+        defaultValue={
+          inv?.dueDate
+            ? inv.dueDate.slice(0, 10)
+            : dueDay
+              ? // ตั้งค่าเริ่มต้นจาก "กำหนดชำระภายในวันที่" ในตั้งค่าหอพัก (เดือนเดียวกับบิล)
+                `${period}-${String(dueDay).padStart(2, "0")}`
+              : ""
+        }
       />
 
       {od?.overdue && od.lateFee > 0 && (

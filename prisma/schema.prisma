@@ -18,6 +18,9 @@ model User {
   dormName     String   @default("หอพักของฉัน")
   waterRate    Float    @default(18) // บาท/หน่วย
   elecRate     Float    @default(8) // บาท/หน่วย
+  phone        String? // เบอร์โทรติดต่อหอพัก
+  billDay      Int? // ทำบิลทุกวันที่ (1-31)
+  dueDay       Int? // กำหนดชำระภายในวันที่ (1-31) — ใช้เป็นค่าเริ่มต้นวันครบกำหนดตอนออกบิล
 
   // ข้อมูลหัวบิล
   businessType String? // ประเภทกิจการ เช่น บุคคลธรรมดา / นิติบุคคล

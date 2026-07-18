@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "billDay" INTEGER;
+ALTER TABLE "User" ADD COLUMN "dueDay" INTEGER;
+ALTER TABLE "User" ADD COLUMN "phone" TEXT;

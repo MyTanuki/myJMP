@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { requireAccess } from "@/lib/auth";
-import { PageHeader, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import RoomGridClient, { GridRow } from "./RoomGridClient";
 
 export default async function RoomSetupPage() {
@@ -19,14 +19,8 @@ export default async function RoomSetupPage() {
   }));
 
   return (
-    <>
-      <PageHeader
-        title="จัดการห้องพัก"
-        subtitle="กำหนดอาคาร ชั้น เลขห้อง และชื่อห้อง"
-      />
-      <Card className="p-6 max-w-3xl">
-        <RoomGridClient initial={initial} />
-      </Card>
-    </>
+    <Card className="p-6 max-w-3xl">
+      <RoomGridClient initial={initial} />
+    </Card>
   );
 }

@@ -161,6 +161,7 @@ export default async function InvoicesPage({
         lines={lines}
         presets={presets.map((p) => ({ label: p.label, amount: p.amount }))}
         lateFeePerDay={user?.lateFeePerDay ?? 0}
+        dueDay={user?.dueDay ?? null}
       />
     </>
   );

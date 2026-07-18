@@ -59,8 +59,13 @@ export default async function MetersPage({
       tenant: r.tenants[0]?.name ?? null,
       prevWater,
       prevElec,
-      water: cur?.water ?? prevWater,
-      elec: cur?.elec ?? prevElec,
+      // ยังไม่จดรอบนี้ → เริ่มที่ 0 รอกรอก (ไม่ยกเลขเดือนก่อนมาใส่ให้ กันบันทึกเลขเก่าโดยไม่ตั้งใจ)
+      water: cur?.water ?? 0,
+      elec: cur?.elec ?? 0,
+      waterMeterChanged: cur?.waterMeterChanged ?? false,
+      waterOldEnd: cur?.waterOldEnd ?? 0,
+      elecMeterChanged: cur?.elecMeterChanged ?? false,
+      elecOldEnd: cur?.elecOldEnd ?? 0,
     };
   });
 

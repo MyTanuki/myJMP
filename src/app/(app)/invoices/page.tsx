@@ -76,6 +76,10 @@ export default async function InvoicesPage({
           elecRate: invForPeriod.elecRate,
           other: invForPeriod.other,
           otherNote: invForPeriod.otherNote,
+          waterMeterChanged: invForPeriod.waterMeterChanged,
+          waterOldEnd: invForPeriod.waterOldEnd,
+          elecMeterChanged: invForPeriod.elecMeterChanged,
+          elecOldEnd: invForPeriod.elecOldEnd,
           status: invForPeriod.status,
           dueDate: invForPeriod.dueDate?.toISOString() ?? null,
           items: invForPeriod.items.map((it) => ({
@@ -98,6 +102,10 @@ export default async function InvoicesPage({
       prevElec: prevReading?.elec ?? earlier?.currElec ?? 0,
       meterWater: curReading?.water ?? null,
       meterElec: curReading?.elec ?? null,
+      meterWaterChanged: curReading?.waterMeterChanged ?? false,
+      meterWaterOldEnd: curReading?.waterOldEnd ?? 0,
+      meterElecChanged: curReading?.elecMeterChanged ?? false,
+      meterElecOldEnd: curReading?.elecOldEnd ?? 0,
       invoice,
     };
   });

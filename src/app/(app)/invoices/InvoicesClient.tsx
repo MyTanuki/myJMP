@@ -5,7 +5,7 @@ import Modal, { Input } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
-import { baht, calcInvoice, overdueInfo, roomLabel } from "@/lib/format";
+import { baht, calcInvoice, meterUnits, overdueInfo, roomLabel } from "@/lib/format";
 import { createInvoice, togglePaid, deleteInvoice } from "./actions";
 
 export type InvoiceData = {
@@ -19,6 +19,10 @@ export type InvoiceData = {
   elecRate: number;
   other: number;
   otherNote: string | null;
+  waterMeterChanged: boolean;
+  waterOldEnd: number;
+  elecMeterChanged: boolean;
+  elecOldEnd: number;
   status: string;
   dueDate: string | null;
   items: { label: string; amount: number }[];
@@ -37,6 +41,11 @@ export type RoomLine = {
   prevElec: number;
   meterWater: number | null; // เลขมิเตอร์ที่จดไว้รอบนี้ (ถ้ามี)
   meterElec: number | null;
+  // สถานะมิเตอร์เต็ม/เปลี่ยนมิเตอร์ จากหน้าจดมิเตอร์รอบนี้
+  meterWaterChanged: boolean;
+  meterWaterOldEnd: number;
+  meterElecChanged: boolean;
+  meterElecOldEnd: number;
   invoice: InvoiceData | null;
 };
 
@@ -88,7 +97,7 @@ export default function InvoicesClient({
           </div>
           <div className="text-sm text-slate-400">
             {inv
-              ? `น้ำ ${Math.max(0, inv.currWater - inv.prevWater)} หน่วย · ไฟ ${Math.max(0, inv.currElec - inv.prevElec)} หน่วย`
+              ? `น้ำ ${meterUnits(inv.prevWater, inv.currWater, inv.waterMeterChanged, inv.waterOldEnd)} หน่วย · ไฟ ${meterUnits(inv.prevElec, inv.currElec, inv.elecMeterChanged, inv.elecOldEnd)} หน่วย`
               : "ยังไม่ออกบิล"}
           </div>
         </div>
@@ -178,6 +187,11 @@ function InvoiceForm({
   );
   const [wRate] = useState(inv?.waterRate ?? line.waterRate);
   const [eRate] = useState(inv?.elecRate ?? line.elecRate);
+  // สถานะเปลี่ยนมิเตอร์: ใช้ของบิลถ้ามี ไม่งั้นดึงจากที่จดมิเตอร์รอบนี้
+  const waterChanged = inv?.waterMeterChanged ?? line.meterWaterChanged;
+  const waterOldEnd = inv?.waterOldEnd ?? line.meterWaterOldEnd;
+  const elecChanged = inv?.elecMeterChanged ?? line.meterElecChanged;
+  const elecOldEnd = inv?.elecOldEnd ?? line.meterElecOldEnd;
   const [items, setItems] = useState<{ label: string; amount: number }[]>(
     inv?.items ?? []
   );
@@ -197,6 +211,10 @@ function InvoiceForm({
     waterRate: wRate,
     elecRate: eRate,
     other: 0,
+    waterMeterChanged: waterChanged,
+    waterOldEnd,
+    elecMeterChanged: elecChanged,
+    elecOldEnd,
     items,
   });
   const od = inv ? overdueInfo(inv, lateFeePerDay) : null;
@@ -216,6 +234,10 @@ function InvoiceForm({
       <input type="hidden" name="elecRate" value={eRate} />
       <input type="hidden" name="other" value={0} />
       <input type="hidden" name="items" value={JSON.stringify(items)} />
+      <input type="hidden" name="waterMeterChanged" value={waterChanged ? "1" : ""} />
+      <input type="hidden" name="waterOldEnd" value={waterOldEnd} />
+      <input type="hidden" name="elecMeterChanged" value={elecChanged ? "1" : ""} />
+      <input type="hidden" name="elecOldEnd" value={elecOldEnd} />
 
       <Input
         label="ค่าเช่า (บาท)"
@@ -228,6 +250,11 @@ function InvoiceForm({
       <div className="rounded-xl bg-slate-50 p-3 space-y-3">
         <div className="text-sm font-medium text-slate-600">
           มิเตอร์น้ำ ({wRate} บาท/หน่วย)
+          {waterChanged && (
+            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+              เปลี่ยนมิเตอร์ — เก่าสิ้นสุด {waterOldEnd}
+            </span>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Input
@@ -253,6 +280,11 @@ function InvoiceForm({
       <div className="rounded-xl bg-slate-50 p-3 space-y-3">
         <div className="text-sm font-medium text-slate-600">
           มิเตอร์ไฟ ({eRate} บาท/หน่วย)
+          {elecChanged && (
+            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+              เปลี่ยนมิเตอร์ — เก่าสิ้นสุด {elecOldEnd}
+            </span>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Input

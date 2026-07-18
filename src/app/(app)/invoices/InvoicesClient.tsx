@@ -6,7 +6,12 @@ import DatePicker from "@/components/DatePicker";
 import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
 import { baht, calcInvoice, meterUnits, overdueInfo, roomLabel } from "@/lib/format";
-import { createInvoice, togglePaid, deleteInvoice } from "./actions";
+import {
+  createInvoice,
+  createMonthlyInvoices,
+  togglePaid,
+  deleteInvoice,
+} from "./actions";
 
 export type InvoiceData = {
   id: string;
@@ -46,6 +51,8 @@ export type RoomLine = {
   meterWaterOldEnd: number;
   meterElecChanged: boolean;
   meterElecOldEnd: number;
+  // รายการบริการจากบิลล่าสุด ใช้ตั้งต้นเมื่อยังไม่มีบิลรอบนี้
+  prevItems: { label: string; amount: number }[];
   invoice: InvoiceData | null;
 };
 
@@ -65,6 +72,9 @@ export default function InvoicesClient({
   dueDay: number | null;
 }) {
   const [active, setActive] = useState<RoomLine | null>(null);
+  const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+
+  const pendingCount = lines.filter((l) => l.tenant && !l.invoice).length;
 
   // จัดกลุ่มเป็น อาคาร → ชั้น (lines มาเรียงตามอาคาร/ชั้น/ห้องแล้วจากเซิร์ฟเวอร์)
   const buildings = new Map<string, Map<number, RoomLine[]>>();
@@ -125,6 +135,35 @@ export default function InvoicesClient({
 
   return (
     <>
+      {/* ออกบิลอัตโนมัติทั้งเดือน — ดึงค่าเช่า มิเตอร์ และรายการบริการเดือนก่อนมาตั้งต้น */}
+      <form
+        action={async (fd) => {
+          const r = await createMonthlyInvoices(fd);
+          setBulkMsg(`ออกบิลอัตโนมัติแล้ว ${r?.created ?? 0} ห้อง`);
+          setTimeout(() => setBulkMsg(null), 5000);
+        }}
+        className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-4"
+      >
+        <input type="hidden" name="period" value={period} />
+        <div className="min-w-0 flex-1 text-sm text-slate-600">
+          <span className="font-semibold text-slate-800">
+            ออกบิลอัตโนมัติทั้งเดือน
+          </span>{" "}
+          — ห้องที่มีผู้เช่าและยังไม่มีบิล {pendingCount} ห้อง
+          (ดึงค่าเช่า เลขมิเตอร์ และรายการบริการจากบิลเดือนก่อนให้อัตโนมัติ)
+        </div>
+        {bulkMsg && (
+          <span className="text-sm font-medium text-emerald-600">{bulkMsg}</span>
+        )}
+        <button
+          type="submit"
+          disabled={pendingCount === 0}
+          className="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-5 py-2.5 rounded-xl transition"
+        >
+          ⚡ ออกบิลทั้งเดือน
+        </button>
+      </form>
+
       <div className="space-y-5">
         {[...buildings.entries()].map(([building, floors]) => (
           <div key={building} className="rounded-xl border border-slate-200 p-4">
@@ -197,8 +236,9 @@ function InvoiceForm({
   const waterOldEnd = inv?.waterOldEnd ?? line.meterWaterOldEnd;
   const elecChanged = inv?.elecMeterChanged ?? line.meterElecChanged;
   const elecOldEnd = inv?.elecOldEnd ?? line.meterElecOldEnd;
+  // บิลใหม่ → ตั้งต้นด้วยรายการบริการจากบิลเดือนก่อน ไม่ต้องเลือกใหม่ทุกเดือน
   const [items, setItems] = useState<{ label: string; amount: number }[]>(
-    inv?.items ?? []
+    inv?.items ?? line.prevItems
   );
 
   const addItem = () => setItems((xs) => [...xs, { label: "", amount: 0 }]);

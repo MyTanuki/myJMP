@@ -52,7 +52,7 @@ export default async function InvoicePrintPage({
 
   return (
     <div className="max-w-xl mx-auto">
-      <PrintButton />
+      <PrintButton backHref={`/invoices?room=${inv.roomId}&period=${inv.period}`} />
 
       <div className="bg-white rounded-2xl border border-slate-200 p-8 print:border-0 print:rounded-none">
         <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">

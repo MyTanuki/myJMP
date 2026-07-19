@@ -70,7 +70,7 @@ export default async function ContractPrintPage({
 
   return (
     <div className="max-w-2xl mx-auto">
-      <PrintButton />
+      <PrintButton backHref={`/rooms/${room.id}`} />
 
       <div className="bg-white rounded-2xl border border-slate-200 p-8 print:border-0 print:rounded-none">
         <div className="text-center border-b border-slate-100 pb-4 mb-6">

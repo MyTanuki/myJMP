@@ -35,8 +35,11 @@ export default async function IssuesPage({
     id: i.id,
     title: i.title,
     detail: i.detail,
+    type: i.type,
     status: i.status,
     priority: i.priority,
+    appointmentDate: i.appointmentDate?.toISOString() ?? null,
+    assignee: i.assignee,
     createdAt: i.createdAt.toISOString(),
     resolvedAt: i.resolvedAt?.toISOString() ?? null,
     roomId: i.roomId,
@@ -56,7 +59,7 @@ export default async function IssuesPage({
         />
       )}
       <PageHeader
-        title="แจ้งซ่อม"
+        title="การแจ้ง"
         subtitle={`ค้างอยู่ ${openCount} รายการ · ทั้งหมด ${rows.length} รายการ`}
       />
       <IssuesClient

@@ -5,7 +5,7 @@ import Modal, { Input } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
-import { baht, calcInvoice, meterUnits, overdueInfo, roomLabel, thaiDate } from "@/lib/format";
+import { baht, calcInvoice, meterUnits, overdueInfo, roomLabel, thaiDate, thaiMonth } from "@/lib/format";
 import {
   createInvoice,
   createMonthlyInvoices,
@@ -45,6 +45,10 @@ export type RoomLine = {
   floor: number;
   number: string;
   tenant: string | null;
+  // ข้อมูลหัวบิลผู้เช่า (แบบต้นแบบ)
+  tenantPhone: string | null;
+  tenantIdCard: string | null;
+  tenantAddress: string | null;
   basePrice: number;
   waterRate: number; // อัตราที่ใช้จริง (ของห้อง หรือค่ากลาง)
   elecRate: number;
@@ -272,7 +276,8 @@ export default function InvoicesClient({
         title={`บิลห้อง ${active ? roomLabel(active.building, active.number) : ""}`}
       >
         {active && (
-          <InvoiceForm
+          <BillDetail
+            key={active.roomId}
             line={active}
             period={period}
             presets={presets}
@@ -286,13 +291,29 @@ export default function InvoicesClient({
   );
 }
 
-function InvoiceForm({
+// รายละเอียดบิลแบบต้นแบบ: มีบิลแล้ว → หน้าอ่านก่อน กด "แก้ไขบิล" ค่อยเข้าฟอร์ม
+function BillDetail(props: {
+  line: RoomLine;
+  period: string;
+  presets: Preset[];
+  lateFeePerDay: number;
+  dueDay: number | null;
+  onDone: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  if (!props.line.invoice || editing) {
+    return <InvoiceForm {...props} onBack={props.line.invoice ? () => setEditing(false) : undefined} />;
+  }
+  return <BillView {...props} onEdit={() => setEditing(true)} />;
+}
+
+// หน้าอ่านรายละเอียดบิล (layout ตามต้นแบบ)
+function BillView({
   line,
   period,
-  presets,
   lateFeePerDay,
-  dueDay,
   onDone,
+  onEdit,
 }: {
   line: RoomLine;
   period: string;
@@ -300,6 +321,310 @@ function InvoiceForm({
   lateFeePerDay: number;
   dueDay: number | null;
   onDone: () => void;
+  onEdit: () => void;
+}) {
+  const inv = line.invoice!;
+  const [payOpen, setPayOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
+
+  const c = calcInvoice(inv);
+  const od = overdueInfo(inv, lateFeePerDay);
+  const grandTotal = c.total + od.lateFee;
+  // เลขที่บิลอ้างอิง (สร้างจากงวด+ห้อง แบบต้นแบบ INVyyyymm...)
+  const invNo = `INV${period.replace("-", "")}-${line.building}${line.number}`;
+
+  return (
+    <div className="space-y-4">
+      {/* หัวบิล: เลขที่ + สถานะ */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-sm text-slate-400">{invNo}</div>
+        {inv.status === "paid" ? (
+          <Badge tone="green">บิลค่าเช่า · ชำระแล้ว</Badge>
+        ) : od.overdue ? (
+          <Badge tone="red">บิลค่าเช่า · เกินกำหนด {od.daysLate} วัน</Badge>
+        ) : (
+          <Badge tone="amber">บิลค่าเช่า · ค้างชำระ</Badge>
+        )}
+      </div>
+
+      {/* รายละเอียดหัวบิล (ผู้เช่า) */}
+      <div className="rounded-xl bg-slate-50 p-4 text-sm">
+        <div className="font-medium text-slate-600 mb-1">รายละเอียดหัวบิล</div>
+        <div className="text-slate-800">{line.tenant ?? "— ไม่มีผู้เช่า —"}</div>
+        {line.tenantAddress && (
+          <div className="text-slate-500 text-xs mt-0.5">
+            ที่อยู่ {line.tenantAddress}
+          </div>
+        )}
+        <div className="text-slate-500 text-xs mt-0.5">
+          {line.tenantPhone && <>เบอร์โทร {line.tenantPhone} </>}
+          {line.tenantIdCard && <>· เลขประจำตัวประชาชน {line.tenantIdCard}</>}
+        </div>
+        <div className="text-slate-400 text-xs mt-1">
+          กำหนดชำระ {inv.dueDate ? thaiDate(inv.dueDate) : "—"}
+        </div>
+      </div>
+
+      {/* ตารางรายการแบบต้นแบบ (โชว์สูตรมิเตอร์) */}
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 text-slate-400 text-left">
+            <th className="py-2 font-medium">รายการ</th>
+            <th className="py-2 font-medium text-right">จำนวนเงิน (บาท)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-slate-50">
+            <td className="py-2 text-slate-700">
+              ค่าเช่าห้อง {roomLabel(line.building, line.number)} เดือน{" "}
+              {thaiMonth(inv ? period : period)}
+            </td>
+            <td className="py-2 text-right text-slate-700">{baht(c.rent)}</td>
+          </tr>
+          <tr className="border-b border-slate-50">
+            <td className="py-2 text-slate-700">
+              ค่าน้ำประปา{" "}
+              <span className="text-slate-400 text-xs">
+                {inv.waterMeterChanged
+                  ? `(เปลี่ยนมิเตอร์ เก่าสิ้นสุด ${inv.waterOldEnd} = ${c.waterUnits} หน่วย × ${inv.waterRate})`
+                  : `(${inv.currWater} − ${inv.prevWater} = ${c.waterUnits} หน่วย × ${inv.waterRate})`}
+              </span>
+            </td>
+            <td className="py-2 text-right text-slate-700">{baht(c.waterCost)}</td>
+          </tr>
+          <tr className="border-b border-slate-50">
+            <td className="py-2 text-slate-700">
+              ค่าไฟฟ้า{" "}
+              <span className="text-slate-400 text-xs">
+                {inv.elecMeterChanged
+                  ? `(เปลี่ยนมิเตอร์ เก่าสิ้นสุด ${inv.elecOldEnd} = ${c.elecUnits} หน่วย × ${inv.elecRate})`
+                  : `(${inv.currElec} − ${inv.prevElec} = ${c.elecUnits} หน่วย × ${inv.elecRate})`}
+              </span>
+            </td>
+            <td className="py-2 text-right text-slate-700">{baht(c.elecCost)}</td>
+          </tr>
+          {inv.items.map((it, i) => (
+            <tr key={i} className="border-b border-slate-50">
+              <td className="py-2 text-slate-700">{it.label}</td>
+              <td
+                className={`py-2 text-right ${it.amount < 0 ? "text-emerald-600" : "text-slate-700"}`}
+              >
+                {baht(it.amount)}
+              </td>
+            </tr>
+          ))}
+          {od.overdue && od.lateFee > 0 && (
+            <tr className="border-b border-slate-50">
+              <td className="py-2 text-red-600">
+                ค่าปรับล่าช้า {od.daysLate} วัน
+              </td>
+              <td className="py-2 text-right text-red-600">{baht(od.lateFee)}</td>
+            </tr>
+          )}
+          <tr>
+            <td className="py-3 font-semibold text-slate-800">รวมทั้งหมด</td>
+            <td className="py-3 text-right text-xl font-bold text-brand-700">
+              {baht(grandTotal)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* รายละเอียดการชำระเงิน / รับชำระ */}
+      {inv.status === "paid" ? (
+        <div className="rounded-xl bg-emerald-50 p-4 text-sm space-y-1">
+          <div className="font-medium text-emerald-800">
+            ✓ รายละเอียดการชำระเงิน
+          </div>
+          <div className="text-emerald-700">
+            วันที่ {thaiDate(inv.paidDate)} · ช่องทาง{" "}
+            {inv.paymentMethod ?? "ไม่ระบุ"} · ยอดรวม{" "}
+            {baht(inv.paidAmount ?? grandTotal)}
+          </div>
+          {inv.paymentNote && (
+            <div className="text-emerald-600 text-xs">
+              หมายเหตุ: {inv.paymentNote}
+            </div>
+          )}
+          {!cancelOpen ? (
+            <button
+              type="button"
+              onClick={() => setCancelOpen(true)}
+              className="mt-1 rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 transition"
+            >
+              ยกเลิกการชำระ
+            </button>
+          ) : (
+            <form
+              action={async (fd) => {
+                await togglePaid(fd);
+                onDone();
+              }}
+              className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2"
+            >
+              <input type="hidden" name="id" value={inv.id} />
+              <input type="hidden" name="status" value="unpaid" />
+              <label className="block text-xs font-medium text-amber-800">
+                เหตุผลการยกเลิกชำระ (จำเป็น)
+                <input
+                  name="cancelNote"
+                  value={cancelNote}
+                  onChange={(e) => setCancelNote(e.target.value)}
+                  placeholder="เช่น บันทึกผิดบิล ยอดไม่ตรง สลิปไม่ผ่าน"
+                  className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-amber-400"
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  disabled={!cancelNote.trim()}
+                  className="rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-xs font-medium text-white transition"
+                >
+                  ยืนยันยกเลิกชำระ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCancelOpen(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:bg-white transition"
+                >
+                  ปิด
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-emerald-200 p-4 text-sm space-y-2">
+          {inv.cancelNote && (
+            <div className="text-xs text-amber-600">
+              ⚠️ เคยยกเลิกการชำระ — เหตุผล: {inv.cancelNote}
+            </div>
+          )}
+          {!payOpen ? (
+            <button
+              type="button"
+              onClick={() => setPayOpen(true)}
+              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition"
+            >
+              💵 จ่ายค่าห้อง
+            </button>
+          ) : (
+            <form
+              action={async (fd) => {
+                await togglePaid(fd);
+                onDone();
+              }}
+              className="space-y-2"
+            >
+              <input type="hidden" name="id" value={inv.id} />
+              <input type="hidden" name="status" value="paid" />
+              <div className="font-medium text-slate-700">บันทึกการรับชำระ</div>
+              <div className="grid grid-cols-2 gap-3">
+                <DatePicker
+                  label="วันที่ชำระ"
+                  name="paidDate"
+                  defaultValue={new Date().toISOString().slice(0, 10)}
+                />
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-600">
+                    ช่องทางชำระ
+                  </span>
+                  <select
+                    name="paymentMethod"
+                    defaultValue="เงินสด"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 bg-white"
+                  >
+                    <option>เงินสด</option>
+                    <option>โอนเงิน</option>
+                    <option>อื่นๆ</option>
+                  </select>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="ยอดที่รับชำระ (บาท)"
+                  name="paidAmount"
+                  type="number"
+                  defaultValue={grandTotal}
+                />
+                <Input label="หมายเหตุ (ถ้ามี)" name="paymentNote" />
+              </div>
+              <div className="flex gap-2">
+                <button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition">
+                  ยืนยันรับชำระ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayOpen(false)}
+                  className="rounded-xl px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 transition"
+                >
+                  ปิด
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* ปุ่มแบบต้นแบบ: พิมพ์ / แก้ไขบิล */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <a
+          href={`/invoices/${inv.id}/print`}
+          target="_blank"
+          className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition"
+        >
+          🖨️ พิมพ์ใบแจ้งหนี้
+        </a>
+        {inv.status === "paid" && (
+          <a
+            href={`/invoices/${inv.id}/print?type=receipt`}
+            target="_blank"
+            className="px-4 py-2.5 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-medium transition"
+          >
+            🧾 พิมพ์ใบเสร็จรับเงิน
+          </a>
+        )}
+        <button
+          type="button"
+          onClick={onEdit}
+          className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition"
+        >
+          ✏️ แก้ไขบิล
+        </button>
+        <div className="flex-1" />
+        <form
+          action={async (fd) => {
+            if (!confirm("ลบบิลนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
+            await deleteInvoice(fd);
+            onDone();
+          }}
+        >
+          <input type="hidden" name="id" value={inv.id} />
+          <button className="px-4 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-medium transition">
+            ลบ
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function InvoiceForm({
+  line,
+  period,
+  presets,
+  lateFeePerDay,
+  dueDay,
+  onDone,
+  onBack,
+}: {
+  line: RoomLine;
+  period: string;
+  presets: Preset[];
+  lateFeePerDay: number;
+  dueDay: number | null;
+  onDone: () => void;
+  onBack?: () => void; // กลับไปหน้าอ่านรายละเอียดบิล
 }) {
   const inv = line.invoice;
   const [rent, setRent] = useState(inv?.rent ?? line.basePrice);
@@ -322,10 +647,6 @@ function InvoiceForm({
   const [items, setItems] = useState<{ label: string; amount: number }[]>(
     inv?.items ?? line.prevItems
   );
-  // ฟอร์มรับชำระ / ยกเลิกชำระ (ยกเลิกต้องกรอกหมายเหตุ)
-  const [payOpen, setPayOpen] = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelNote, setCancelNote] = useState("");
 
   const addItem = () => setItems((xs) => [...xs, { label: "", amount: 0 }]);
   const removeItem = (i: number) =>
@@ -526,177 +847,19 @@ function InvoiceForm({
         </span>
       </div>
 
-      {/* รายละเอียดการชำระเงิน (บิลที่ชำระแล้ว) */}
-      {inv && inv.status === "paid" && (
-        <div className="rounded-xl bg-emerald-50 p-4 text-sm space-y-1">
-          <div className="font-medium text-emerald-800">
-            ✓ รายละเอียดการชำระเงิน
-          </div>
-          <div className="text-emerald-700">
-            วันที่ {thaiDate(inv.paidDate)} · ช่องทาง{" "}
-            {inv.paymentMethod ?? "ไม่ระบุ"} · ยอดรวม{" "}
-            {baht(inv.paidAmount ?? grandTotal)}
-          </div>
-          {inv.paymentNote && (
-            <div className="text-emerald-600 text-xs">
-              หมายเหตุ: {inv.paymentNote}
-            </div>
-          )}
-          {!cancelOpen ? (
-            <button
-              type="button"
-              onClick={() => setCancelOpen(true)}
-              className="mt-1 rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 transition"
-            >
-              ยกเลิกการชำระ
-            </button>
-          ) : (
-            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
-              <label className="block text-xs font-medium text-amber-800">
-                เหตุผลการยกเลิกชำระ (จำเป็น)
-                <input
-                  value={cancelNote}
-                  onChange={(e) => setCancelNote(e.target.value)}
-                  placeholder="เช่น บันทึกผิดบิล ยอดไม่ตรง สลิปไม่ผ่าน"
-                  className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-amber-400"
-                />
-              </label>
-              <input type="hidden" name="cancelNote" value={cancelNote} />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={!cancelNote.trim()}
-                  formAction={async (fd) => {
-                    fd.set("status", "unpaid");
-                    await togglePaid(fd);
-                    onDone();
-                  }}
-                  className="rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-xs font-medium text-white transition"
-                >
-                  ยืนยันยกเลิกชำระ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCancelOpen(false)}
-                  className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:bg-white transition"
-                >
-                  ปิด
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* รับชำระ (บิลค้างชำระ) */}
-      {inv && inv.status !== "paid" && (
-        <div className="rounded-xl border border-emerald-200 p-4 text-sm space-y-2">
-          {inv.cancelNote && (
-            <div className="text-xs text-amber-600">
-              ⚠️ เคยยกเลิกการชำระ — เหตุผล: {inv.cancelNote}
-            </div>
-          )}
-          {!payOpen ? (
-            <button
-              type="button"
-              onClick={() => setPayOpen(true)}
-              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition"
-            >
-              💵 รับชำระเงิน
-            </button>
-          ) : (
-            <>
-              <div className="font-medium text-slate-700">บันทึกการรับชำระ</div>
-              <div className="grid grid-cols-2 gap-3">
-                <DatePicker
-                  label="วันที่ชำระ"
-                  name="paidDate"
-                  defaultValue={new Date().toISOString().slice(0, 10)}
-                />
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-600">
-                    ช่องทางชำระ
-                  </span>
-                  <select
-                    name="paymentMethod"
-                    defaultValue="เงินสด"
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 bg-white"
-                  >
-                    <option>เงินสด</option>
-                    <option>โอนเงิน</option>
-                    <option>อื่นๆ</option>
-                  </select>
-                </label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="ยอดที่รับชำระ (บาท)"
-                  name="paidAmount"
-                  type="number"
-                  defaultValue={grandTotal}
-                />
-                <Input label="หมายเหตุ (ถ้ามี)" name="paymentNote" />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  formAction={async (fd) => {
-                    fd.set("status", "paid");
-                    await togglePaid(fd);
-                    onDone();
-                  }}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition"
-                >
-                  ยืนยันรับชำระ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayOpen(false)}
-                  className="rounded-xl px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 transition"
-                >
-                  ปิด
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center gap-2">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition"
+          >
+            ← กลับ
+          </button>
+        )}
         <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
           บันทึกบิล
         </SaveButton>
-        {inv && (
-          <>
-            <a
-              href={`/invoices/${inv.id}/print`}
-              target="_blank"
-              className="px-4 py-2.5 rounded-xl text-brand-700 hover:bg-brand-50 font-medium transition"
-            >
-              พิมพ์ใบแจ้งหนี้
-            </a>
-            {inv.status === "paid" && (
-              <a
-                href={`/invoices/${inv.id}/print?type=receipt`}
-                target="_blank"
-                className="px-4 py-2.5 rounded-xl text-emerald-700 hover:bg-emerald-50 font-medium transition"
-              >
-                พิมพ์ใบเสร็จรับเงิน
-              </a>
-            )}
-            <button
-              type="submit"
-              formAction={async (fd) => {
-                if (!confirm("ลบบิลนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
-                await deleteInvoice(fd);
-                onDone();
-              }}
-              className="px-4 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-medium transition"
-            >
-              ลบ
-            </button>
-          </>
-        )}
         {inv && <input type="hidden" name="id" value={inv.id} />}
       </div>
     </form>

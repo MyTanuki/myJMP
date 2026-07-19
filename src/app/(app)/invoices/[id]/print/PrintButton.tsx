@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 
-export default function PrintButton({ backHref }: { backHref: string }) {
+export default function PrintButton({
+  backHref,
+  label = "พิมพ์บิล",
+}: {
+  backHref: string;
+  label?: string;
+}) {
   return (
     <div className="flex items-center justify-between mb-4 print:hidden">
       <Link
@@ -15,7 +21,7 @@ export default function PrintButton({ backHref }: { backHref: string }) {
         onClick={() => window.print()}
         className="bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2 rounded-xl transition"
       >
-        🖨️ พิมพ์บิล
+        🖨️ {label}
       </button>
     </div>
   );

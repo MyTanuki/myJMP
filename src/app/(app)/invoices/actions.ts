@@ -181,13 +181,41 @@ export async function togglePaid(formData: FormData) {
   const status = String(formData.get("status") ?? "");
   if (!id) return;
   const paid = status === "paid";
-  await db.invoice.update({
-    where: { id },
-    data: {
-      status: paid ? "paid" : "unpaid",
-      paidDate: paid ? new Date() : null,
-    },
-  });
+
+  if (paid) {
+    // รับชำระ: เก็บรายละเอียดการชำระ (วันที่ ช่องทาง ยอด หมายเหตุ)
+    const dateRaw = String(formData.get("paidDate") ?? "").trim();
+    const method = String(formData.get("paymentMethod") ?? "").trim() || "เงินสด";
+    const amountRaw = formData.get("paidAmount");
+    await db.invoice.update({
+      where: { id },
+      data: {
+        status: "paid",
+        paidDate: dateRaw ? new Date(dateRaw) : new Date(),
+        paymentMethod: method,
+        paidAmount: amountRaw != null && String(amountRaw).trim() !== ""
+          ? Number(amountRaw) || 0
+          : null,
+        paymentNote: String(formData.get("paymentNote") ?? "").trim() || null,
+        cancelNote: null,
+      },
+    });
+  } else {
+    // ยกเลิกชำระ: ต้องมีหมายเหตุกำกับทุกครั้ง
+    const cancelNote = String(formData.get("cancelNote") ?? "").trim();
+    if (!cancelNote) return;
+    await db.invoice.update({
+      where: { id },
+      data: {
+        status: "unpaid",
+        paidDate: null,
+        paymentMethod: null,
+        paidAmount: null,
+        paymentNote: null,
+        cancelNote,
+      },
+    });
+  }
   revalidatePath("/", "layout");
 }
 

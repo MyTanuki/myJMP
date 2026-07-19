@@ -673,8 +673,17 @@ function InvoiceForm({
               target="_blank"
               className="px-4 py-2.5 rounded-xl text-brand-700 hover:bg-brand-50 font-medium transition"
             >
-              พิมพ์บิล
+              พิมพ์ใบแจ้งหนี้
             </a>
+            {inv.status === "paid" && (
+              <a
+                href={`/invoices/${inv.id}/print?type=receipt`}
+                target="_blank"
+                className="px-4 py-2.5 rounded-xl text-emerald-700 hover:bg-emerald-50 font-medium transition"
+              >
+                พิมพ์ใบเสร็จรับเงิน
+              </a>
+            )}
             <button
               type="submit"
               formAction={async (fd) => {

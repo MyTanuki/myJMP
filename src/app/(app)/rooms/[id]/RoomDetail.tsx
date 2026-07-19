@@ -854,8 +854,16 @@ function PaymentTab({ data }: { data: RoomDetailData }) {
               href={`/invoices/${inv.id}/print`}
               className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition"
             >
-              พิมพ์
+              พิมพ์ใบแจ้งหนี้
             </Link>
+            {inv.status === "paid" && (
+              <Link
+                href={`/invoices/${inv.id}/print?type=receipt`}
+                className="px-4 py-2 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-sm font-medium transition"
+              >
+                พิมพ์ใบเสร็จรับเงิน
+              </Link>
+            )}
             <Link
               href={`/invoices?room=${data.id}&period=${inv.period}`}
               className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition"

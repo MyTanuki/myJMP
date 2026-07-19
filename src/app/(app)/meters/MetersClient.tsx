@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { roomLabel, thaiMonth, meterUnits } from "@/lib/format";
+import { roomLabel, thaiMonth, thaiDate, meterUnits } from "@/lib/format";
 import SaveButton from "@/components/SaveButton";
 import { saveMeters } from "./actions";
 
@@ -19,6 +19,8 @@ export type MeterLine = {
   waterOldEnd: number;
   elecMeterChanged: boolean;
   elecOldEnd: number;
+  // ผู้เช่าเข้าพักในเดือนนี้ → ใช้เลขมิเตอร์ตอนเข้าพักเป็นตัวตั้งได้ (แบบต้นแบบ)
+  moveIn: { water: number | null; elec: number | null; startDate: string } | null;
 };
 
 type Mode = "water" | "elec";
@@ -40,6 +42,10 @@ export default function MetersClient({
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<Mode>("water");
   const [modalRoomId, setModalRoomId] = useState<string | null>(null);
+  // ห้องที่ผู้เช่าเข้าพักเดือนนี้ — ติ๊ก "ใช้เลขเข้าพัก" เป็นค่าเริ่มต้น (แบบต้นแบบ)
+  const [useMoveIn, setUseMoveIn] = useState<Set<string>>(
+    () => new Set(lines.filter((l) => l.moveIn).map((l) => l.roomId))
+  );
   // ค่าเริ่มต้นไว้เทียบ — บันทึกเฉพาะห้องที่แก้จริง กันเขียนทับห้องอื่นด้วยค่าเดิม/ศูนย์
   const initialRef = useRef(new Map(lines.map((l) => [l.roomId, l])));
 
@@ -160,7 +166,18 @@ export default function MetersClient({
                     </thead>
                     <tbody>
                       {list.map((r) => {
-                        const prev = mode === "water" ? r.prevWater : r.prevElec;
+                        // เข้าพักเดือนนี้ + ติ๊กใช้เลขเข้าพัก → ตัวตั้ง = เลขมิเตอร์ตอนเข้าพัก
+                        const moveInVal =
+                          mode === "water" ? r.moveIn?.water : r.moveIn?.elec;
+                        const usingMoveIn =
+                          r.moveIn != null &&
+                          moveInVal != null &&
+                          useMoveIn.has(r.roomId);
+                        const prev = usingMoveIn
+                          ? moveInVal
+                          : mode === "water"
+                            ? r.prevWater
+                            : r.prevElec;
                         const cur = mode === "water" ? r.water : r.elec;
                         const changed =
                           mode === "water"
@@ -213,6 +230,28 @@ export default function MetersClient({
                               {changed && (
                                 <div className="text-[10px] text-amber-600 whitespace-nowrap">
                                   เก่าสิ้นสุด {oldEnd}
+                                </div>
+                              )}
+                              {r.moveIn && moveInVal != null && (
+                                <div className="text-[10px] whitespace-nowrap">
+                                  <label className="inline-flex items-center gap-1 text-sky-700 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={useMoveIn.has(r.roomId)}
+                                      onChange={() =>
+                                        setUseMoveIn((s) => {
+                                          const n = new Set(s);
+                                          if (n.has(r.roomId)) n.delete(r.roomId);
+                                          else n.add(r.roomId);
+                                          return n;
+                                        })
+                                      }
+                                    />
+                                    ใช้เลขเข้าพัก ({moveInVal})
+                                  </label>
+                                  <div className="text-slate-400">
+                                    เริ่มสัญญา {thaiDate(r.moveIn.startDate)}
+                                  </div>
                                 </div>
                               )}
                             </td>

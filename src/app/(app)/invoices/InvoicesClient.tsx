@@ -94,6 +94,8 @@ export default function InvoicesClient({
 
   const kw = q.trim().toLowerCase();
   const visible = lines.filter((l) => {
+    // ห้องว่างที่ไม่มีบิล ไม่ต้องแสดง (แบบต้นแบบ)
+    if (!l.tenant && !l.invoice) return false;
     if (filter === "unpaid" && !(l.invoice && l.invoice.status !== "paid"))
       return false;
     if (filter === "paid" && !(l.invoice && l.invoice.status === "paid"))
@@ -117,50 +119,65 @@ export default function InvoicesClient({
     floors.get(line.floor)!.push(line);
   }
 
-  const renderRow = (line: RoomLine) => {
+  // การ์ดกล่องแบบต้นแบบ: สีตามสถานะ แดง=ค้าง เขียว=จ่ายแล้ว เหลือง=ยังไม่ออกบิล
+  const renderCard = (line: RoomLine) => {
     const inv = line.invoice;
     const od = inv ? overdueInfo(inv, lateFeePerDay) : null;
     const total = inv ? calcInvoice(inv).total + (od?.lateFee ?? 0) : null;
+
+    const style = !inv
+      ? {
+          card: "bg-amber-50 border-amber-200 hover:border-amber-300",
+          amount: "text-amber-700",
+          label: "ยังไม่ออกบิล",
+          badge: "text-amber-700",
+        }
+      : inv.status === "paid"
+        ? {
+            card: "bg-emerald-50 border-emerald-200 hover:border-emerald-300",
+            amount: "text-emerald-700",
+            label: "ชำระแล้ว",
+            badge: "text-emerald-700",
+          }
+        : {
+            card: "bg-rose-50 border-rose-200 hover:border-rose-300",
+            amount: "text-rose-600",
+            label: od?.overdue ? `เกินกำหนด ${od.daysLate} วัน` : "ค้างชำระ",
+            badge: "text-rose-600",
+          };
+
     return (
       <button
         key={line.roomId}
         onClick={() => setActive(line)}
-        className="w-full text-left bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-brand-200 hover:shadow transition flex flex-wrap items-center gap-3"
+        className={`text-left rounded-2xl border shadow-sm p-4 transition hover:shadow ${style.card}`}
       >
-        <div className="grid place-items-center w-12 h-12 rounded-xl bg-brand-50 text-brand-700 font-bold shrink-0">
-          {line.number}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold text-slate-800 truncate">
-            ห้อง {line.number}
-            {line.tenant ? (
-              <span className="text-slate-400 font-normal"> · {line.tenant}</span>
-            ) : (
-              <span className="text-slate-300 font-normal"> · ว่าง</span>
-            )}
-          </div>
-          <div className="text-sm text-slate-400">
-            {inv
-              ? `น้ำ ${meterUnits(inv.prevWater, inv.currWater, inv.waterMeterChanged, inv.waterOldEnd)} หน่วย · ไฟ ${meterUnits(inv.prevElec, inv.currElec, inv.elecMeterChanged, inv.elecOldEnd)} หน่วย`
-              : "ยังไม่ออกบิล"}
-          </div>
-        </div>
-        <div className="text-right">
-          {inv ? (
-            <>
-              <div className="font-bold text-slate-800">{baht(total!)}</div>
-              {inv.status === "paid" ? (
-                <Badge tone="green">ชำระแล้ว</Badge>
-              ) : od?.overdue ? (
-                <Badge tone="red">เกินกำหนด {od.daysLate} วัน</Badge>
-              ) : (
-                <Badge tone="amber">ค้างชำระ</Badge>
-              )}
-            </>
-          ) : (
-            <Badge tone="amber">+ ออกบิล</Badge>
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-lg font-bold text-slate-800">{line.number}</div>
+          {line.tenant && (
+            <svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-4 h-4 mt-1.5 shrink-0 text-slate-400"
+            >
+              <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.76-3.58-5-8-5Z" />
+            </svg>
           )}
         </div>
+        <div className="text-xs text-slate-400 truncate">
+          {line.tenant ?? "ว่าง (มีบิลค้าง)"}
+        </div>
+        <div className={`mt-2 text-lg font-bold ${style.amount}`}>
+          {inv ? baht(total!) : "+ ออกบิล"}
+        </div>
+        <div className={`text-xs font-medium ${style.badge}`}>{style.label}</div>
+        {inv && (
+          <div className="mt-1 text-[10px] text-slate-400 truncate">
+            น้ำ {meterUnits(inv.prevWater, inv.currWater, inv.waterMeterChanged, inv.waterOldEnd)}{" "}
+            · ไฟ {meterUnits(inv.prevElec, inv.currElec, inv.elecMeterChanged, inv.elecOldEnd)}{" "}
+            หน่วย
+          </div>
+        )}
       </button>
     );
   };
@@ -239,7 +256,9 @@ export default function InvoicesClient({
                   <div className="text-sm font-semibold text-slate-500 mb-2">
                     ชั้น {floor}
                   </div>
-                  <div className="space-y-3">{list.map(renderRow)}</div>
+                  <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+                    {list.map(renderCard)}
+                  </div>
                 </div>
               ))}
             </div>

@@ -108,6 +108,20 @@ export default async function InvoicesPage({
       floor: r.floor,
       number: r.number,
       tenant: r.tenants[0]?.name ?? null,
+      // ข้อมูลหัวบิลผู้เช่า (แบบต้นแบบ)
+      tenantPhone: r.tenants[0]?.phone ?? null,
+      tenantIdCard: r.tenants[0]?.idCard ?? null,
+      tenantAddress: r.tenants[0]
+        ? [
+            r.tenants[0].address,
+            r.tenants[0].subdistrict,
+            r.tenants[0].district,
+            r.tenants[0].province,
+            r.tenants[0].postalCode,
+          ]
+            .filter(Boolean)
+            .join(" ") || null
+        : null,
       basePrice: monthlyRent(r),
       waterRate: r.waterRate ?? user?.waterRate ?? 18,
       elecRate: r.elecRate ?? user?.elecRate ?? 8,

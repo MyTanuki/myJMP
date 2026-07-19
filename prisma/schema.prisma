@@ -127,8 +127,11 @@ model Issue {
   id         String    @id @default(cuid())
   title      String
   detail     String?
+  type       String    @default("fix") // fix | cleaning | moveout | other (แจ้งซ่อม/ทำความสะอาด/ย้ายออก/อื่นๆฉุกเฉิน)
   status     String    @default("open") // open | in_progress | done
   priority   String    @default("normal") // low | normal | high
+  appointmentDate DateTime? // วันที่นัดหมายเข้าดำเนินการ
+  assignee   String? // ผู้ดำเนินการ (ชื่อช่าง/ผู้รับผิดชอบ)
   createdAt  DateTime  @default(now())
   resolvedAt DateTime?
 

@@ -45,8 +45,21 @@ export async function createMonthlyInvoices(formData: FormData) {
       .filter((i) => i.period < period)
       .sort((a, b) => (a.period < b.period ? 1 : -1))[0];
 
-    const prevWater = prev?.water ?? earlier?.currWater ?? 0;
-    const prevElec = prev?.elec ?? earlier?.currElec ?? 0;
+    // เข้าพักในเดือนนี้ → ตัวตั้ง = เลขมิเตอร์ตอนเข้าพัก (แบบต้นแบบ)
+    const startDate = tenant.contractStart ?? tenant.moveInDate ?? null;
+    const movedInThisPeriod =
+      !!startDate &&
+      `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}` ===
+        period;
+
+    const prevWater =
+      movedInThisPeriod && tenant.moveInWater != null
+        ? tenant.moveInWater
+        : (prev?.water ?? earlier?.currWater ?? 0);
+    const prevElec =
+      movedInThisPeriod && tenant.moveInElec != null
+        ? tenant.moveInElec
+        : (prev?.elec ?? earlier?.currElec ?? 0);
 
     const invoice = await db.invoice.create({
       data: {

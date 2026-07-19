@@ -64,6 +64,14 @@ export default async function InvoicesPage({
     const curReading = r.meterReadings.find((m) => m.period === period);
     const prevReading = r.meterReadings.find((m) => m.period === prevPeriod);
 
+    // ผู้เช่าเข้าพักในเดือนนี้ → ตัวตั้งค่าน้ำ/ไฟ = เลขมิเตอร์ตอนเข้าพัก (แบบต้นแบบ)
+    const t0 = r.tenants[0];
+    const startDate = t0?.contractStart ?? t0?.moveInDate ?? null;
+    const movedInThisPeriod =
+      !!startDate &&
+      `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}` ===
+        period;
+
     const invoice: InvoiceData | null = invForPeriod
       ? {
           id: invForPeriod.id,
@@ -98,8 +106,14 @@ export default async function InvoicesPage({
       basePrice: monthlyRent(r),
       waterRate: r.waterRate ?? user?.waterRate ?? 18,
       elecRate: r.elecRate ?? user?.elecRate ?? 8,
-      prevWater: prevReading?.water ?? earlier?.currWater ?? 0,
-      prevElec: prevReading?.elec ?? earlier?.currElec ?? 0,
+      prevWater:
+        movedInThisPeriod && t0?.moveInWater != null
+          ? t0.moveInWater
+          : (prevReading?.water ?? earlier?.currWater ?? 0),
+      prevElec:
+        movedInThisPeriod && t0?.moveInElec != null
+          ? t0.moveInElec
+          : (prevReading?.elec ?? earlier?.currElec ?? 0),
       meterWater: curReading?.water ?? null,
       meterElec: curReading?.elec ?? null,
       meterWaterChanged: curReading?.waterMeterChanged ?? false,

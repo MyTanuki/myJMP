@@ -51,6 +51,15 @@ export default async function MetersPage({
     const prevWater = prev?.water ?? earlierInv?.currWater ?? 0;
     const prevElec = prev?.elec ?? earlierInv?.currElec ?? 0;
 
+    // ผู้เช่าเข้าพักในเดือนนี้ → เสนอ "ใช้เลขเข้าพัก" เป็นตัวตั้งแทน (แบบต้นแบบ)
+    const t = r.tenants[0];
+    const startDate = t?.contractStart ?? t?.moveInDate ?? null;
+    const startPeriod = startDate
+      ? `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`
+      : null;
+    const movedInThisPeriod =
+      startPeriod === period && (t?.moveInWater != null || t?.moveInElec != null);
+
     return {
       roomId: r.id,
       building: r.building,
@@ -59,6 +68,13 @@ export default async function MetersPage({
       tenant: r.tenants[0]?.name ?? null,
       prevWater,
       prevElec,
+      moveIn: movedInThisPeriod
+        ? {
+            water: t?.moveInWater ?? null,
+            elec: t?.moveInElec ?? null,
+            startDate: startDate!.toISOString(),
+          }
+        : null,
       // ยังไม่จดรอบนี้ → เริ่มที่ 0 รอกรอก (ไม่ยกเลขเดือนก่อนมาใส่ให้ กันบันทึกเลขเก่าโดยไม่ตั้งใจ)
       water: cur?.water ?? 0,
       elec: cur?.elec ?? 0,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Modal, { Input } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import SaveButton from "@/components/SaveButton";
@@ -81,6 +82,7 @@ export default function InvoicesClient({
   lateFeePerDay: number;
   dueDay: number | null;
 }) {
+  const router = useRouter();
   const [active, setActive] = useState<RoomLine | null>(null);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [filter, setFilter] = useState<
@@ -153,7 +155,12 @@ export default function InvoicesClient({
     return (
       <button
         key={line.roomId}
-        onClick={() => setActive(line)}
+        // มีบิลแล้ว → เปิดหน้ารายละเอียดเต็ม (แบบต้นแบบ) / ยังไม่มีบิล → ฟอร์มสร้าง
+        onClick={() =>
+          line.invoice
+            ? router.push(`/invoices/${line.invoice.id}`)
+            : setActive(line)
+        }
         className={`text-left rounded-2xl border shadow-sm p-4 transition hover:shadow ${style.card}`}
       >
         <div className="flex items-start justify-between gap-2">
@@ -292,7 +299,8 @@ export default function InvoicesClient({
 }
 
 // รายละเอียดบิลแบบต้นแบบ: มีบิลแล้ว → หน้าอ่านก่อน กด "แก้ไขบิล" ค่อยเข้าฟอร์ม
-function BillDetail(props: {
+// export ให้หน้ารายละเอียดเต็ม /invoices/[id] ใช้ร่วมด้วย
+export function BillDetail(props: {
   line: RoomLine;
   period: string;
   presets: Preset[];

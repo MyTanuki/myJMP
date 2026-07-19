@@ -90,6 +90,11 @@ export default async function InvoicesPage({
           elecOldEnd: invForPeriod.elecOldEnd,
           status: invForPeriod.status,
           dueDate: invForPeriod.dueDate?.toISOString() ?? null,
+          paidDate: invForPeriod.paidDate?.toISOString() ?? null,
+          paymentMethod: invForPeriod.paymentMethod,
+          paidAmount: invForPeriod.paidAmount,
+          paymentNote: invForPeriod.paymentNote,
+          cancelNote: invForPeriod.cancelNote,
           items: invForPeriod.items.map((it) => ({
             label: it.label,
             amount: it.amount,

@@ -5,7 +5,7 @@ import Modal, { Input } from "@/components/Modal";
 import DatePicker from "@/components/DatePicker";
 import SaveButton from "@/components/SaveButton";
 import { Badge } from "@/components/ui";
-import { baht, calcInvoice, meterUnits, overdueInfo, roomLabel } from "@/lib/format";
+import { baht, calcInvoice, meterUnits, overdueInfo, roomLabel, thaiDate } from "@/lib/format";
 import {
   createInvoice,
   createMonthlyInvoices,
@@ -30,6 +30,12 @@ export type InvoiceData = {
   elecOldEnd: number;
   status: string;
   dueDate: string | null;
+  // รายละเอียดการชำระ
+  paidDate: string | null;
+  paymentMethod: string | null;
+  paidAmount: number | null;
+  paymentNote: string | null;
+  cancelNote: string | null;
   items: { label: string; amount: number }[];
 };
 
@@ -297,6 +303,10 @@ function InvoiceForm({
   const [items, setItems] = useState<{ label: string; amount: number }[]>(
     inv?.items ?? line.prevItems
   );
+  // ฟอร์มรับชำระ / ยกเลิกชำระ (ยกเลิกต้องกรอกหมายเหตุ)
+  const [payOpen, setPayOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
 
   const addItem = () => setItems((xs) => [...xs, { label: "", amount: 0 }]);
   const removeItem = (i: number) =>
@@ -497,6 +507,142 @@ function InvoiceForm({
         </span>
       </div>
 
+      {/* รายละเอียดการชำระเงิน (บิลที่ชำระแล้ว) */}
+      {inv && inv.status === "paid" && (
+        <div className="rounded-xl bg-emerald-50 p-4 text-sm space-y-1">
+          <div className="font-medium text-emerald-800">
+            ✓ รายละเอียดการชำระเงิน
+          </div>
+          <div className="text-emerald-700">
+            วันที่ {thaiDate(inv.paidDate)} · ช่องทาง{" "}
+            {inv.paymentMethod ?? "ไม่ระบุ"} · ยอดรวม{" "}
+            {baht(inv.paidAmount ?? grandTotal)}
+          </div>
+          {inv.paymentNote && (
+            <div className="text-emerald-600 text-xs">
+              หมายเหตุ: {inv.paymentNote}
+            </div>
+          )}
+          {!cancelOpen ? (
+            <button
+              type="button"
+              onClick={() => setCancelOpen(true)}
+              className="mt-1 rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 transition"
+            >
+              ยกเลิกการชำระ
+            </button>
+          ) : (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+              <label className="block text-xs font-medium text-amber-800">
+                เหตุผลการยกเลิกชำระ (จำเป็น)
+                <input
+                  value={cancelNote}
+                  onChange={(e) => setCancelNote(e.target.value)}
+                  placeholder="เช่น บันทึกผิดบิล ยอดไม่ตรง สลิปไม่ผ่าน"
+                  className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-amber-400"
+                />
+              </label>
+              <input type="hidden" name="cancelNote" value={cancelNote} />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={!cancelNote.trim()}
+                  formAction={async (fd) => {
+                    fd.set("status", "unpaid");
+                    await togglePaid(fd);
+                    onDone();
+                  }}
+                  className="rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-xs font-medium text-white transition"
+                >
+                  ยืนยันยกเลิกชำระ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCancelOpen(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:bg-white transition"
+                >
+                  ปิด
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* รับชำระ (บิลค้างชำระ) */}
+      {inv && inv.status !== "paid" && (
+        <div className="rounded-xl border border-emerald-200 p-4 text-sm space-y-2">
+          {inv.cancelNote && (
+            <div className="text-xs text-amber-600">
+              ⚠️ เคยยกเลิกการชำระ — เหตุผล: {inv.cancelNote}
+            </div>
+          )}
+          {!payOpen ? (
+            <button
+              type="button"
+              onClick={() => setPayOpen(true)}
+              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition"
+            >
+              💵 รับชำระเงิน
+            </button>
+          ) : (
+            <>
+              <div className="font-medium text-slate-700">บันทึกการรับชำระ</div>
+              <div className="grid grid-cols-2 gap-3">
+                <DatePicker
+                  label="วันที่ชำระ"
+                  name="paidDate"
+                  defaultValue={new Date().toISOString().slice(0, 10)}
+                />
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-600">
+                    ช่องทางชำระ
+                  </span>
+                  <select
+                    name="paymentMethod"
+                    defaultValue="เงินสด"
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 bg-white"
+                  >
+                    <option>เงินสด</option>
+                    <option>โอนเงิน</option>
+                    <option>อื่นๆ</option>
+                  </select>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="ยอดที่รับชำระ (บาท)"
+                  name="paidAmount"
+                  type="number"
+                  defaultValue={grandTotal}
+                />
+                <Input label="หมายเหตุ (ถ้ามี)" name="paymentNote" />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  formAction={async (fd) => {
+                    fd.set("status", "paid");
+                    await togglePaid(fd);
+                    onDone();
+                  }}
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition"
+                >
+                  ยืนยันรับชำระ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayOpen(false)}
+                  className="rounded-xl px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 transition"
+                >
+                  ปิด
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <SaveButton className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-xl transition">
           บันทึกบิล
@@ -513,20 +659,6 @@ function InvoiceForm({
             <button
               type="submit"
               formAction={async (fd) => {
-                await togglePaid(fd);
-                onDone();
-              }}
-              className={`px-4 py-2.5 rounded-xl font-medium transition ${
-                inv.status === "paid"
-                  ? "text-amber-700 hover:bg-amber-50"
-                  : "text-emerald-700 hover:bg-emerald-50"
-              }`}
-            >
-              {inv.status === "paid" ? "ยกเลิกชำระ" : "ทำเครื่องหมายชำระ"}
-            </button>
-            <button
-              type="submit"
-              formAction={async (fd) => {
                 if (!confirm("ลบบิลนี้?\nเมื่อลบแล้วไม่สามารถย้อนกลับได้")) return;
                 await deleteInvoice(fd);
                 onDone();
@@ -538,13 +670,6 @@ function InvoiceForm({
           </>
         )}
         {inv && <input type="hidden" name="id" value={inv.id} />}
-        {inv && (
-          <input
-            type="hidden"
-            name="status"
-            value={inv.status === "paid" ? "unpaid" : "paid"}
-          />
-        )}
       </div>
     </form>
   );

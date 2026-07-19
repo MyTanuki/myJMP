@@ -275,6 +275,11 @@ model Invoice {
   status    String    @default("unpaid") // unpaid | paid
   dueDate   DateTime?
   paidDate  DateTime?
+  // รายละเอียดการชำระ
+  paymentMethod String? // เงินสด | โอนเงิน | อื่นๆ
+  paidAmount    Float? // ยอดที่รับชำระจริง
+  paymentNote   String? // หมายเหตุการชำระ
+  cancelNote    String? // เหตุผลการยกเลิกชำระครั้งล่าสุด
   createdAt DateTime  @default(now())
 
   roomId   String

@@ -863,7 +863,17 @@ function PaymentTab({ data }: { data: RoomDetailData }) {
               แก้ไขบิล
             </Link>
             <div className="flex-1" />
-            <form action={togglePaid}>
+            <form
+              action={async (fd) => {
+                // ยกเลิกชำระต้องมีหมายเหตุกำกับทุกครั้ง
+                if (inv.status === "paid") {
+                  const note = prompt("เหตุผลการยกเลิกชำระ (จำเป็น):");
+                  if (!note || !note.trim()) return;
+                  fd.set("cancelNote", note.trim());
+                }
+                await togglePaid(fd);
+              }}
+            >
               <input type="hidden" name="id" value={inv.id} />
               <input
                 type="hidden"
